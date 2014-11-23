@@ -11,17 +11,23 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import microblog.Feature.featureName;
 
 public class Model {	
-	public static HashMap<String, HashSet<String>> PosCloseSet = new HashMap<String, HashSet<String>>();
+	public  HashMap<String, Set<String>> m_posCloseSet = new HashMap<String, Set<String>>();
+	public  HashMap<String, Map<String, Integer>> m_wordPOSSets = new HashMap<String, Map<String, Integer>>();
+	public  HashMap<String, Integer> m_wordFreq = new HashMap<String, Integer>();
+	public  HashMap<String, Map<String, Integer>> m_startCharPOSSets = new HashMap<String, Map<String, Integer>>();
+	public  HashMap<String, Integer> m_startCharFreq = new HashMap<String, Integer>();
 	
 	
 	// feature templates abstd::cout characters
@@ -99,13 +105,13 @@ public class Model {
 	public HashMap<String, String> m_mapCanStart = new HashMap<String, String>();
 	
 	public Model(){
-		loadPosCloseSet();
+		//loadPosCloseSet();
 	}
 	
 	
 	
 	
-	public void loadPosCloseSet(){
+/*	public void loadPosCloseSet(){
 		PosCloseSet = new HashMap<String, HashSet<String>>();
 		
 		HashSet<String> newSet = new HashSet<String>();
@@ -160,72 +166,205 @@ public class Model {
 		PosCloseSet.put("VE", newSet);
 		
 	}
+*/	
 	
+	public void init(String filename){
+		m_posCloseSet = new HashMap<String, Set<String>>();
+		m_posCloseSet.put("AS", new HashSet<String>());
+		m_posCloseSet.put("BA", new HashSet<String>());
+		m_posCloseSet.put("CS", new HashSet<String>());
+		m_posCloseSet.put("CC", new HashSet<String>());
+		m_posCloseSet.put("DEC", new HashSet<String>());
+		m_posCloseSet.put("DEG", new HashSet<String>());
+		m_posCloseSet.put("DEV", new HashSet<String>());
+		m_posCloseSet.put("DER", new HashSet<String>());
+		m_posCloseSet.put("DT", new HashSet<String>());
+		m_posCloseSet.put("ETC", new HashSet<String>());
+		m_posCloseSet.put("IJ", new HashSet<String>());
+		m_posCloseSet.put("LB", new HashSet<String>());
+		m_posCloseSet.put("LC", new HashSet<String>());
+		m_posCloseSet.put("P", new HashSet<String>());
+		m_posCloseSet.put("PN", new HashSet<String>());
+		m_posCloseSet.put("PU", new HashSet<String>());
+		m_posCloseSet.put("SB", new HashSet<String>());
+		m_posCloseSet.put("SP", new HashSet<String>());
+		m_posCloseSet.put("VC", new HashSet<String>());
+		m_posCloseSet.put("VE", new HashSet<String>());
+		m_wordPOSSets = new HashMap<String, Map<String, Integer>>();
+		m_wordFreq = new HashMap<String, Integer>();
+		m_startCharPOSSets = new HashMap<String, Map<String, Integer>>();
+		m_startCharFreq = new HashMap<String, Integer>();
+		try {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					new FileInputStream(filename), "UTF-8"));
+			String line = "";
+			while ((line = reader.readLine()) != null) {
+				line = line.trim();
+				if(line.isEmpty())continue;
+				String[] temstrs=line.trim().split("\\s+");	
+				for(String tempStr : temstrs)
+				{
+					int index = tempStr.indexOf("_");
+					if(index == -1)
+					{
+						System.out.println("error input line: " + line);
+						continue;
+					}
+					String theWord = tempStr.substring(0, index);
+					String theFirstChar = theWord.substring(0,1);
+					String thePOS = tempStr.substring(index+1, tempStr.length());
+
+					if(!m_wordFreq.containsKey(theWord))
+					{
+						m_wordFreq.put(theWord, 0);
+						m_wordPOSSets.put(theWord, new HashMap<String, Integer>());
+					}
+					m_wordFreq.put(theWord, m_wordFreq.get(theWord)+1);
+					if(!m_wordPOSSets.get(theWord).containsKey(thePOS))
+					{
+						m_wordPOSSets.get(theWord).put(thePOS, 0);
+					}
+					m_wordPOSSets.get(theWord).put(thePOS, m_wordPOSSets.get(theWord).get(thePOS)+1);
+					
+					if(!m_startCharFreq.containsKey(theFirstChar))
+					{
+						m_startCharFreq.put(theFirstChar, 0);
+						m_startCharPOSSets.put(theFirstChar, new HashMap<String, Integer>());
+					}
+					m_startCharFreq.put(theFirstChar, m_startCharFreq.get(theFirstChar)+1);
+					if(!m_startCharPOSSets.get(theFirstChar).containsKey(thePOS))
+					{
+						m_startCharPOSSets.get(theFirstChar).put(thePOS, 0);
+					}
+					m_startCharPOSSets.get(theFirstChar).put(thePOS, m_startCharPOSSets.get(theFirstChar).get(thePOS)+1);
+					
+					if(m_posCloseSet.containsKey(thePOS))
+					{
+						m_posCloseSet.get(thePOS).add(theWord);
+					}
+				}
+			}
+			
+			reader.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	//从文件中载入
 	public void load(String filename){
 		//features=new HashMap<String, Double>();
 		newFeatureTemplates();
-		File file = new File(filename);
-		BufferedInputStream fis;
+		m_posCloseSet = new HashMap<String, Set<String>>();
+		m_wordPOSSets = new HashMap<String, Map<String, Integer>>();
+		m_wordFreq = new HashMap<String, Integer>();
+		m_startCharPOSSets = new HashMap<String, Map<String, Integer>>();
+		m_startCharFreq = new HashMap<String, Integer>();
 		try {
-			fis = new BufferedInputStream(new FileInputStream(file));
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					fis, "utf-8"), 5 * 1024 * 1024);// 用50M的缓冲读取文本文件
+					new FileInputStream(filename), "UTF-8"));
 			String line = "";
-			String context = "";
+			//String context = "";
 			while ((line = reader.readLine()) != null) {
-				if(line.trim().length()>0){
-					String[] temstrs=line.trim().split(" ");					
-						for(int i=0;i< temstrs.length;i++){
-							String f=temstrs[i];
-							String[] strs=f.trim().split("#");
-							if(strs.length == 4){
-								String name=strs[0].trim();
-								double dweigth= Double.parseDouble(strs[1]);
-								double dsum= Double.parseDouble(strs[2]);
-								int iindex = Integer.parseInt(strs[3]);
-								
-								String[] names = name.split("=");								
-								HashMap<String, Feature> hm= GetFeatureTemplate(names[0]);
-								hm.put(name, new Feature(name, dweigth,dsum, iindex));	
-							}
+				line = line.trim();
+				if(line.isEmpty())continue;
+				String[] temstrs=line.trim().split("\\s+");		
+				if(temstrs.length == 1) 
+				{
+					System.out.println("error line: " + line);
+					continue;
+				}
+				if(temstrs[0].equals("weight") && temstrs.length == 5)
+				{
+					String name=temstrs[1].trim();
+					double dweigth= Double.parseDouble(temstrs[2]);
+					double dsum= Double.parseDouble(temstrs[3]);
+					int iindex = Integer.parseInt(temstrs[4]);
+					
+					String[] names = name.split("=");								
+					HashMap<String, Feature> hm= GetFeatureTemplate(names[0]);
+					hm.put(name, new Feature(name, dweigth,dsum, iindex));	
+				}
+				else if(temstrs[0].equals("worddict") && temstrs.length % 2 == 1)
+				{
+					String theWord = temstrs[1];
+					int wordfreq = Integer.parseInt(temstrs[2]);
+					if(m_wordFreq.containsKey(theWord))
+					{
+						System.out.println("model word dict word duplication: " + theWord);
+					}
+					m_wordFreq.put(theWord, wordfreq);
+					m_wordPOSSets.put(theWord, new HashMap<String, Integer>());
+					int sumfreq = 0;
+					for(int idx = 3; idx < temstrs.length - 1; idx++)
+					{
+						String thePOS = temstrs[idx];
+						idx++;
+						int curPOSFreq = Integer.parseInt(temstrs[idx]);			
+						sumfreq += curPOSFreq;
+						if(m_wordPOSSets.get(theWord).containsKey(thePOS))
+						{
+							System.out.println("model word dict pos duplication: " + theWord + " " + thePOS);
 						}
-				}								
-			}			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
-	}
-	
-	//合并另一model
-	public void Merger(String filename){
-		//features=new HashMap<String, Double>();
-		File file = new File(filename);
-		BufferedInputStream fis;
-		try {
-			fis = new BufferedInputStream(new FileInputStream(file));
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					fis, "utf-8"), 5 * 1024 * 1024);// 用50M的缓冲读取文本文件
-			String line = "";
-			String context = "";
-			while ((line = reader.readLine()) != null) {
-				if(line.trim().length()>0){
-					String[] temstrs=line.trim().split(" ");
-					for(int i=0;i< temstrs.length;i++){
-						String f=temstrs[i];
-						String[] strs=f.trim().split("#");
-						String name=strs[0];
-						//System.out.println(name+"#");
-						double dweigth= Double.parseDouble(strs[1]);
-						double dsum= Double.parseDouble(strs[2]);
-						int iindex = Integer.parseInt(strs[3]);						
-						String[] names = name.split("=");								
-						HashMap<String, Feature> hm= GetFeatureTemplate(names[0]);
-						hm.put(name, new Feature(name, dweigth,dsum, iindex));							
-					}					
-				}				
-			}			
+						m_wordPOSSets.get(theWord).put(thePOS, curPOSFreq);
+					}
+					if(sumfreq != wordfreq)
+					{
+						System.out.println("model word dict freq does not match: " + theWord );
+					}
+				}
+				else if(temstrs[0].equals("schardict") && temstrs.length % 2 == 1 && temstrs[1].length() == 1)
+				{
+					String theWord = temstrs[1];
+					int wordfreq = Integer.parseInt(temstrs[2]);
+					if(m_startCharFreq.containsKey(theWord))
+					{
+						System.out.println("model start char dict char duplication: " + theWord);
+					}
+					m_startCharFreq.put(theWord, wordfreq);
+					m_startCharPOSSets.put(theWord, new HashMap<String, Integer>());
+					int sumfreq = 0;
+					for(int idx = 3; idx < temstrs.length - 1; idx++)
+					{
+						String thePOS = temstrs[idx];
+						idx++;
+						int curPOSFreq = Integer.parseInt(temstrs[idx]);			
+						sumfreq += curPOSFreq;
+						if(m_startCharPOSSets.get(theWord).containsKey(thePOS))
+						{
+							System.out.println("model start char dict pos duplication: " + theWord + " " + thePOS);
+						}
+						m_startCharPOSSets.get(theWord).put(thePOS, curPOSFreq);
+					}
+					if(sumfreq != wordfreq)
+					{
+						System.out.println("model start char dict freq does not match: " + theWord );
+					}
+				}
+				else if(temstrs[0].equals("closetag"))
+				{
+					String thePOS = temstrs[1];
+					if(m_posCloseSet.containsKey(thePOS))
+					{
+						System.out.println("model close tag dict POS duplication: " + thePOS);
+					}
+					m_posCloseSet.put(thePOS, new HashSet<String>());
+					for(int idx = 2; idx < temstrs.length; idx++)
+					{
+						if(m_posCloseSet.get(thePOS).contains(temstrs[idx]))
+						{
+							System.out.println("model close tag dict POS word duplication: " + thePOS + " " + temstrs[idx]);
+						}
+						m_posCloseSet.get(thePOS).add(temstrs[idx]);
+					}
+				}
+				else
+				{
+					System.out.println("error line: " + line);
+				}
+
+			}								
+			reader.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -234,32 +373,50 @@ public class Model {
 	
 	//写到文件中
     public void save(String filename){
-    	FileWriter fw;
 		try {
-			//OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(filename, false),"UTF-8");
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw); // 将缓冲对文件的输出
-			String strFea="";
+			PrintWriter bw = new PrintWriter(new OutputStreamWriter(
+					new FileOutputStream(filename), "UTF-8"));
 			for(featureName f: featureName.values()){
-				HashMap<String, Feature> hm= GetFeatureTemplate(f.toString());
-				Iterator it= hm.keySet().iterator();
-				  int n=0;
-				  strFea="";
-				  while (it.hasNext())
-				  {
-					   Object key=it.next();
-					   if((n+1)>5){
-						   n=0;
-						   bw.write(strFea+"\r\n");
-						   strFea="";				   
-					   }
-					   Feature tempf = hm.get(key);
-					   strFea +=tempf.name+"#"+ tempf.weight+"#"+ tempf.sum +"#"+ tempf.lastUpdateIndex+"#"+tempf.aveWeight+" ";
-					   n++;
-				  }				  
-			}			
-			  bw.write(strFea.trim()+"\r\n");			 
-			  bw.close();			
+				HashMap<String, Feature> hm= GetFeatureTemplate(f.toString());				
+				for(String theKey : hm.keySet())
+				{
+					Feature tempf = hm.get(theKey);
+					bw.println("weight " + tempf.name+" "+ Double.toString(tempf.weight)+" "+ Double.toString(tempf.sum) +" "+ Double.toString(tempf.lastUpdateIndex)+" "+Double.toString(tempf.aveWeight));;
+				}			  
+			}
+			
+			for(String theKey : m_wordFreq.keySet())
+			{
+				String outline = "worddict\t" + theKey + " "+ Integer.toString(m_wordFreq.get(theKey));
+				for(String thePOSKey : m_wordPOSSets.get(theKey).keySet())
+				{
+					outline = outline + " " + thePOSKey + " " + Integer.toString(m_wordPOSSets.get(theKey).get(thePOSKey));
+				}
+				bw.println(outline);
+			}
+			
+			for(String theKey : m_startCharFreq.keySet())
+			{
+				String outline = "schardict\t" + theKey + " "+ Integer.toString(m_startCharFreq.get(theKey));
+				for(String thePOSKey : m_startCharPOSSets.get(theKey).keySet())
+				{
+					outline = outline + " " + thePOSKey + " " + Integer.toString(m_startCharPOSSets.get(theKey).get(thePOSKey));
+				}
+				bw.println(outline);
+			}
+			
+			for(String theKey : m_posCloseSet.keySet())
+			{
+				String outline = "closetag\t" + theKey;
+				for(String theWordKey : m_posCloseSet.get(theKey))
+				{
+					outline = outline + " " + theWordKey;
+				}
+				bw.println(outline);
+			}
+			
+			
+			bw.close();			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -273,24 +430,25 @@ public class Model {
      * @param index   训练的次数  
      */
     
-    public void UpdateWeighth(String[] arrFeature, int iType, int updateIndex){
-    	for(int i=0;i<arrFeature.length;i++){
+    public void UpdateWeighth(List<String> oprFeatures, int iType, int updateIndex){
+    	for(String curFeature : oprFeatures){
     		//System.out.println(arrFeature[i].toString());
-    		if(arrFeature[i] == null)  return;    		
-    		int _index = arrFeature[i].indexOf("="); 
+    		//if(arrFeature[i] == null)  return;    		
+    		int _index = curFeature.indexOf("="); 
     	
-    		String sTemplateName = arrFeature[i].substring(0,_index);
+    		String sTemplateName = curFeature.substring(0,_index);
     		HashMap<String, Feature>  hm = GetFeatureTemplate(sTemplateName); 		
-    		Feature temp= hm.get(arrFeature[i]);
+    		Feature temp= hm.get(curFeature);
     		if(temp!=null){
     			if(temp.lastUpdateIndex<updateIndex){
-    			    temp.sum+= (updateIndex-temp.lastUpdateIndex)*temp.weight;    			    
+    			    temp.sum += (updateIndex-temp.lastUpdateIndex-1)*temp.weight;    			    
     			}
     			temp.weight += iType;    				
-    			temp.sum +=iType;
+    			temp.sum +=temp.weight;
     			temp.lastUpdateIndex = updateIndex;
+    			hm.put(curFeature, temp);
     		}else{    			
-    			hm.put(arrFeature[i], new Feature(arrFeature[i], (double)iType, (double)iType, updateIndex)); 			
+    			hm.put(curFeature, new Feature(curFeature, (double)iType, (double)iType, updateIndex)); 			
     		}    		
     	}    	
     }   
@@ -314,6 +472,8 @@ public class Model {
     			   //tempf.weight=tempf.aveWeight;
     		   }
     			tempf.aveWeight= tempf.sum/(curRoundIndexForTrain+1);  
+    			
+    			hm.put(key, tempf);
 
     		}   	
     	}

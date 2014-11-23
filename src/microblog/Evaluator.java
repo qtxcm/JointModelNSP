@@ -3,21 +3,34 @@ package microblog;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+
 
 public class Evaluator {
 	 public BufferedWriter bw ;
 	 public BufferedWriter bwlog;
 	 public String error_file;
-     public String[] arrTestResult;
-     public String[] arrTestStand;    
-     int iSegTP=0, iSegFP=0, iSegFN=0;
-     int iTagTP=0, iTagFP=0, iTagFN=0;
+     public List<String> arrTestResult;
+     public List<String> arrTestStand;    
+     int iSegCorrect=0, iSegPred=0, iSegGold=0;
+     int iTagCorrect=0, iTagPred=0, iTagGold=0;
+     
+ 	private static class Sentence {
+		String[] words;
+		String[] poss;
+		String chars;
+	}
      
      public Evaluator(){    	 
      }
-     public Evaluator(String[] arrTestResult, String[] arrTestStand, BufferedWriter bwlog, String error_file){
+     public Evaluator(List<String> arrTestResult, List<String> arrTestStand, BufferedWriter bwlog, String error_file){
     	 this.arrTestResult=arrTestResult;
     	 this.arrTestStand=arrTestStand;   
     	 this.error_file = error_file;
@@ -35,9 +48,9 @@ public class Evaluator {
      }
      
      public void Computer(){
-    	 for(int i=0; i<arrTestStand.length;i++){
-    		 String sStand = arrTestStand[i];
-    		 String sResult= arrTestResult[i];    		 
+    	 for(int i=0; i<arrTestStand.size();i++){
+    		 String sStand = arrTestStand.get(i);
+    		 String sResult= arrTestResult.get(i);    		 
     		 compareTwoSequence(sStand, sResult);   		 
     	 }
     	 
@@ -51,15 +64,15 @@ public class Evaluator {
      }
      
      public void Save(){
-    	 float segP=(float) (iSegTP/((iSegTP+iSegFP)*1.0));
-    	 float segC=(float) (iSegTP/((iSegTP+iSegFN)*1.0));
-     	 float segF=2*segP*segC/(segP+segC);
-     	 float tagP=(float) (iTagTP/((iTagTP+iTagFP)*1.0));
-   	     float tagC=(float) (iTagTP/((iTagTP+iTagFN)*1.0));
-    	 float tagF=2*tagP*tagC/(tagP+tagC);
+    	 float segP=(float) (iSegCorrect*1.0/iSegPred);
+    	 float segR=(float) (iSegCorrect*1.0/iSegGold);
+     	 float segF=(float) (2.0*iSegCorrect/(iSegPred+iSegGold));
+     	 float tagP=(float) (iTagCorrect*1.0/iTagPred);
+   	     float tagR=(float) (iTagCorrect*1.0/iTagGold);
+    	 float tagF=(float) (2.0*iTagCorrect/(iTagPred+iTagGold));
     	 try {
-			bwlog.write("segmentation result: precise="+ segP + "     call rate="+ segC + "   F="+ segF + "\r\n");
-			bwlog.write("segmentation result: precise="+ tagP + "     call rate="+ tagC + "   F="+ tagF + "\r\n");
+			bwlog.write("segmentation result: precise="+ segP + "     recall rate="+ segR + "   F="+ segF + "\r\n");
+			bwlog.write("segmentation result: precise="+ tagP + "     recall rate="+ tagR + "   F="+ tagF + "\r\n");
 		    	
     	 } catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -73,114 +86,114 @@ public class Evaluator {
      public void compareTwoSequence(String sStand, String sResult){
     	 if(sStand.equals(sResult) == false){
     		 try {
-    			 bw.write("stand :" + sStand.substring(0,sStand.length()-5)+"\r\n");    		
-    			 bw.write("result:" + sResult.substring(0,sResult.length()-5)+"\r\n");
+    			 bw.write("stand :" + sStand +"\r\n" );    		
+    			 bw.write("result:" + sResult +"\r\n");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
     	 }
-    	 State standState= new State();
-    	 standState = standState.TagSeConvertState(sStand);
-    	 State resultState= new State();
-		 resultState = resultState.TagSeConvertState(sResult);
-		 //去掉新增的结尾标识符
-		 standState.arrWord[standState.size-1]=null; 
-		 standState.arrTag[standState.size-1]=null;  
-		 standState.size -= 1;
-		 resultState.arrWord[resultState.size-1]=null;
-		 resultState.arrTag[resultState.size-1]=null;
-		 resultState.size -= 1;
+
 		 
-    	 int iCurIndexOfStandChar = 0;  //标准序列当前字符指针
-		 int iCurIndexOfResultChar = 0; //结果序列当前字符指针
-		 int iCurIndexOfStandWord = 0;  //标准序列当前字指针
-		 int iCurIndexOfResultWord = 0; //结果序列当前字指针
-		 String curWordOfStand="";  //标准序列当前字
-		 String curWordOfResult="";//结果序列当前字
-		 String curTagOfStand="";  //
-		 String curTagOfResult=""; //
-		 boolean bEndOfStand = false;
-		 boolean bEndOfResult = false;
-		 boolean bMoveStand = false; 
-		 boolean bMoveResult = false;
-		 if(iCurIndexOfStandWord<standState.size){			
-			    curWordOfStand = standState.arrWord[iCurIndexOfStandWord];
-			    curTagOfStand = standState.arrTag[iCurIndexOfStandWord];
-			   iCurIndexOfStandChar += curWordOfStand.length();
-			 }
-			 if(iCurIndexOfResultWord<resultState.size){
-				
-			    curWordOfResult =  resultState.arrWord[iCurIndexOfResultWord];
-			    curTagOfResult = resultState.arrTag[iCurIndexOfResultWord];
-			    iCurIndexOfResultChar += curWordOfResult.length();
-			 }
-		 while(true){ 
-			 
-			 if(iCurIndexOfStandWord<standState.size && bMoveStand==true){
-				   
-	 			    curWordOfStand = standState.arrWord[iCurIndexOfStandWord];
-	 			    curTagOfStand = standState.arrTag[iCurIndexOfStandWord];
-	 			    iCurIndexOfStandChar += curWordOfStand.length();
-	 		  }else if (iCurIndexOfStandWord>=standState.size){
-	 			    bEndOfStand = true;
-	 		  }
-			 if(iCurIndexOfResultWord<resultState.size && bMoveResult==true){	
-				    //System.out.println(curWordOfResult+ ":" +iCurIndexOfResultWord );
-	  			    curWordOfResult = resultState.arrWord[iCurIndexOfResultWord];
-	  			    curTagOfResult = resultState.arrTag[iCurIndexOfResultWord];
-	  			    iCurIndexOfResultChar += curWordOfResult.length();
-	 		}else  if (iCurIndexOfResultWord>=resultState.size){
-	 			   bEndOfResult = true;
-	 		}
-			 if(bEndOfStand==true && bEndOfResult==true) break;  //都到结尾，退出 		 
-			 if(curWordOfStand.equals(curWordOfResult)){
-				 iSegTP++;
-				 if(curTagOfStand.equals(curTagOfResult)){
-					 iTagTP++; 
-				 }else{
-					 iTagFN++; iTagFP++;
-				 }
-				 iCurIndexOfStandWord++;  iCurIndexOfResultWord++;   
-				 bMoveStand=true; bMoveResult=true;
-			 }else{    				 
-				 if(iCurIndexOfStandChar< iCurIndexOfResultChar){
-					 iSegFN++; iTagFN++;
-					 iCurIndexOfStandWord++;    
-					 bMoveStand=true; bMoveResult=false;
-				 }else if(iCurIndexOfStandChar == iCurIndexOfResultChar){
-					 iSegFN++; iTagFN++;iSegFP++; iTagFP++;
-					 iCurIndexOfStandWord++; iCurIndexOfResultWord++;  
-					 bMoveStand=true; bMoveResult=true;
-				 }else{
-					 iSegFP++; iTagFP++;
-					 iCurIndexOfResultWord++;  
-					 bMoveResult=true; bMoveStand=false;
-				 }    				 
-			 }   			 
-			 
-		 }
-		 return;   	 
+		 Sentence goldSentence = TagSentConvertSentence(sStand);
+		 Sentence predSentence = TagSentConvertSentence(sResult);
+		 
+		 
+		 int[] evalRes = reco(goldSentence, predSentence);
+		 
+	    iSegCorrect += evalRes[2];
+	    iTagCorrect += evalRes[3];
+	    iSegPred += evalRes[0];
+	    iSegGold += evalRes[1];
+	    iTagPred += evalRes[0];
+	    iTagGold += evalRes[1];
+
+		return;   	 
      }
      
      
-     
-     
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		String r="我是_VE 中国人_NN !_CS";
-		String s="我_NN 是_VE 中国人_NN !_PU";
-		Evaluator  ev= new Evaluator();
-		ev.compareTwoSequence(s, r);
-		System.out.println("seg:"+ev.iSegTP+"  "+ev.iSegFP +"   "+ ev.iSegFN);
-		System.out.println("tag:"+ev.iTagTP+"  "+ev.iTagFP +"   "+ ev.iTagFN);
+	public static int[] reco(Sentence goldSentence, Sentence predSentence) {
+		// seg: 0 goldWords 1 predWords
+		// seg: 2 recoWords 
+		// tag: 3 recoPos 
+		int[] predRes = new int[4];
+
+		for (int i = 0; i < 4; i++) {
+			predRes[i] = 0;
+		}
+
+		String[] goldWords = goldSentence.words;
+		String[] goldLabels = goldSentence.poss;
+		String[] predWords = predSentence.words;
+		String[] predLabels = predSentence.poss;
+
+		int m = 0, n = 0;
+		for (int i = 0; i < goldWords.length; i++) {
+			predRes[0]++;
+		}
+
+		for (int i = 0; i < predWords.length; i++) {
+			predRes[1]++;
+		}
+
+		while (m < predWords.length && n < goldWords.length) {
+			if (predWords[m].equals(goldWords[n])) {
+				predRes[2]++;
+				boolean bTagMatch = false;
+				if (predLabels[m].equals(goldLabels[n])) {
+					bTagMatch = true;
+					predRes[3]++;
+				}
+				m++;
+				n++;
+			} else {
+				int lgold = goldWords[n].length();
+				int lpred = predWords[m].length();
+				int lm = m + 1;
+				int ln = n + 1;
+				int sm = m;
+				int sn = n;
+
+				while (lm < predWords.length || ln < goldWords.length) {
+					if (lgold > lpred && lm < predWords.length) {
+						lpred = lpred + predWords[lm].length();
+						sm = lm;
+						lm++;
+					} else if (lgold < lpred && ln < goldWords.length) {
+						lgold = lgold + goldWords[ln].length();
+						sn = ln;
+						ln++;
+					} else {
+						break;
+					}
+				}
+
+				m = sm + 1;
+				n = sn + 1;
+			}
+		}
+		return predRes;
+	}
+
+	
+    // no usage except for valuation
+    
+    public  static Sentence TagSentConvertSentence(String tagSequence){
+    	Sentence sent= new Sentence();		
+		String[] wordposses = tagSequence.split("\\s+");
+		sent.poss = new String[wordposses.length];
+		sent.words = new String[wordposses.length];
+		sent.chars = "";
+		for(int idx = 0; idx < wordposses.length; idx++)
+		{
+			int index = wordposses[idx].indexOf("_");
+			sent.words[idx] = wordposses[idx].substring(0, index);
+			sent.poss[idx] = wordposses[idx].substring(index+1);
+			sent.chars = sent.chars + sent.words[idx];
+
+		}
 		
-		 //int iSegTP=0, iSegFP=0, iSegFN=0;
-	     //int iTagTP=0, iTagFP=0, iTagFN=0;
-		
+		return sent;	
 	}
 
 }
