@@ -1570,7 +1570,7 @@ public class BeamSearch {
 	 */
 	public static void main(String[] args) {
 		
-		BeamSearchForDSP bs = new BeamSearchForDSP();
+		BeamSearch bs = new BeamSearch();
 		
 		
 		
