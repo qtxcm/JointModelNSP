@@ -1,8 +1,13 @@
 package microblog;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,10 +26,12 @@ public class Evaluator {
      public List<String> arrTestStand;    
      int iSegCorrect=0, iSegPred=0, iSegGold=0;
      int iTagCorrect=0, iTagPred=0, iTagGold=0;
+     int iNormalCorrect=0, iNormalPred =0,  iNormalGold=0;
      
  	private static class Sentence {
 		String[] words;
 		String[] poss;
+		String[] senses;
 		String chars;
 	}
      
@@ -39,19 +46,21 @@ public class Evaluator {
     	FileWriter fw;
   		try {
   			fw = new FileWriter(error_file);
-  			bw = new BufferedWriter(fw); // Ω´ª∫≥Â∂‘Œƒº˛µƒ ‰≥ˆ  			
+  			bw = new BufferedWriter(fw); // Â∞ÜÁºìÂÜ≤ÂØπÊñá‰ª∂ÁöÑËæìÂá∫  			
   		} catch (IOException e) {
   			// TODO Auto-generated catch block
   			e.printStackTrace();
-  		}// ¥¥Ω®FileWriter∂‘œÛ£¨”√¿¥–¥»Î◊÷∑˚¡˜
+  		}// ÂàõÂª∫FileWriterÂØπË±°ÔºåÁî®Êù•ÂÜôÂÖ•Â≠óÁ¨¶ÊµÅ
   		
      }
      
      public void Computer(){
     	 for(int i=0; i<arrTestStand.size();i++){
     		 String sStand = arrTestStand.get(i);
-    		 String sResult= arrTestResult.get(i);    		 
-    		 compareTwoSequence(sStand, sResult);   		 
+    		 String sResult= arrTestResult.get(i); 
+    		// if(sStand.length()>0 && sResult.length()>0){
+    			 compareTwoSequence(sStand, sResult);
+    		 //}
     	 }
     	 
     	 Save();
@@ -70,10 +79,14 @@ public class Evaluator {
      	 float tagP=(float) (iTagCorrect*1.0/iTagPred);
    	     float tagR=(float) (iTagCorrect*1.0/iTagGold);
     	 float tagF=(float) (2.0*iTagCorrect/(iTagPred+iTagGold));
+    	 float normalP = (float) (iNormalCorrect*1.0/iNormalPred);
+    	 float normalR=(float) (iNormalCorrect*1.0/iNormalGold);
+    	 float normalF=(float) (2.0*iNormalCorrect/(iNormalPred+iNormalGold));
+    	 
     	 try {
 			bwlog.write("segmentation result: precise="+ segP + "     recall rate="+ segR + "   F="+ segF + "\r\n");
-			bwlog.write("segmentation result: precise="+ tagP + "     recall rate="+ tagR + "   F="+ tagF + "\r\n");
-		    	
+			bwlog.write("pos          result: precise="+ tagP + "     recall rate="+ tagR + "   F="+ tagF + "\r\n");
+			bwlog.write("Normalization result: precise="+ normalP + "     recall rate="+ normalR + "   F="+ normalF + "\r\n");		    	
     	 } catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -84,29 +97,39 @@ public class Evaluator {
      }
      
      public void compareTwoSequence(String sStand, String sResult){
-    	 if(sStand.equals(sResult) == false){
-    		 try {
-    			 bw.write("stand :" + sStand +"\r\n" );    		
-    			 bw.write("result:" + sResult +"\r\n");
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    	 }
+    	
 
-		 
-		 Sentence goldSentence = TagSentConvertSentence(sStand);
+    	 Sentence goldSentence = TagSentConvertSentence(sStand);    	
 		 Sentence predSentence = TagSentConvertSentence(sResult);
 		 
-		 
+		 //Sentence goldSentence = TagSentConvertSentenceSelf(sStand);    	
+		 //Sentence predSentence = TagSentConvertSentenceSelf(sResult);
+		
+		    
 		 int[] evalRes = reco(goldSentence, predSentence);
 		 
 	    iSegCorrect += evalRes[2];
 	    iTagCorrect += evalRes[3];
-	    iSegPred += evalRes[0];
-	    iSegGold += evalRes[1];
-	    iTagPred += evalRes[0];
-	    iTagGold += evalRes[1];
+	    iSegPred += evalRes[1];
+	    iSegGold += evalRes[0];
+	    iTagPred += evalRes[1];
+	    iTagGold += evalRes[0];
+	    iNormalCorrect += evalRes[6]; 
+	    iNormalPred += evalRes[5];  
+	    iNormalGold += evalRes[4]; 
+	    
+	    //if(evalRes[7] == 1){//‰∏çÁ≠â
+   		 try {
+   			 String temresult =resultProcess(sResult);
+   			 if(sStand.equals(temresult )==false){
+	   			 bw.write("stand :" + sStand +"\r\n" );    		
+	   			 bw.write("result:" + temresult +"\r\n");
+   			 }
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+   	// }
 
 		return;   	 
      }
@@ -116,9 +139,11 @@ public class Evaluator {
 		// seg: 0 goldWords 1 predWords
 		// seg: 2 recoWords 
 		// tag: 3 recoPos 
-		int[] predRes = new int[4];
+		// tag: 4 goldSenses   5 predWords    6 recoSenses
+		//7:ÊòØÂê¶Áõ∏Á≠âÔºå 0ÔºöÁõ∏Á≠âÔºå1Ôºö‰∏çÁ≠â
+		int[] predRes = new int[8];
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 8; i++) {
 			predRes[i] = 0;
 		}
 
@@ -126,27 +151,42 @@ public class Evaluator {
 		String[] goldLabels = goldSentence.poss;
 		String[] predWords = predSentence.words;
 		String[] predLabels = predSentence.poss;
-
+		String[] goldSenses = goldSentence.senses;
+		String[] predSenses = predSentence.senses;
 		int m = 0, n = 0;
 		for (int i = 0; i < goldWords.length; i++) {
 			predRes[0]++;
+			if(goldSenses[i]!=null && goldSenses[i].length()>0){
+				predRes[4]++;
+			}
 		}
 
 		for (int i = 0; i < predWords.length; i++) {
 			predRes[1]++;
-		}
-
+			if(predSenses[i]!=null && predSenses[i].length()>0){
+				predRes[5]++;
+			}
+		}		
+        boolean  bequal = true;
 		while (m < predWords.length && n < goldWords.length) {
 			if (predWords[m].equals(goldWords[n])) {
 				predRes[2]++;
+				if(predSenses[m].length()>0 && predSenses[m].equals(goldSenses[n])){
+					predRes[6]++;
+				}else {
+					if(bequal==true) bequal=false;
+				}
 				boolean bTagMatch = false;
-				if (predLabels[m].equals(goldLabels[n])) {
+				if (predLabels[m].equals(goldLabels[n])){
 					bTagMatch = true;
 					predRes[3]++;
+				}else{
+					if(bequal==true) bequal=false;
 				}
 				m++;
 				n++;
 			} else {
+				if(bequal==true) bequal=false;
 				int lgold = goldWords[n].length();
 				int lpred = predWords[m].length();
 				int lm = m + 1;
@@ -172,28 +212,160 @@ public class Evaluator {
 				n = sn + 1;
 			}
 		}
+		if(bequal==true) predRes[7]=0; else  predRes[7]=1;
 		return predRes;
 	}
 
 	
     // no usage except for valuation
     
-    public  static Sentence TagSentConvertSentence(String tagSequence){
+    public  static Sentence TagSentConvertSentence(String tagSequence) {
     	Sentence sent= new Sentence();		
+        if(tagSequence.trim().length()< 1)  return sent;
 		String[] wordposses = tagSequence.split("\\s+");
+		//StringTokenizer st=new StringTokenizer(tagSequence," ");
 		sent.poss = new String[wordposses.length];
 		sent.words = new String[wordposses.length];
-		sent.chars = "";
+		sent.senses = new String[wordposses.length];
+		sent.chars = "";		
 		for(int idx = 0; idx < wordposses.length; idx++)
 		{
-			int index = wordposses[idx].indexOf("_");
-			sent.words[idx] = wordposses[idx].substring(0, index);
+			//System.out.println(idx+ "="+wordposses[idx]+"=");
+			int index = wordposses[idx].indexOf("_");			
+			String wordSense = wordposses[idx].substring(0, index);
+			int wordIndex  = wordSense.indexOf("|");
+			
+			if(wordIndex>=0){
+				String temword = wordSense.substring(0,wordIndex);
+				String temsense =  wordSense.substring(wordIndex+1);	
+				if(temword.equals(temsense)){
+					sent.words[idx] = temword;
+					sent.senses[idx] = "";
+				}else{
+					sent.words[idx] = temword;
+					sent.senses[idx] = temsense;
+				}				
+			}else{				
+				sent.words[idx] = wordSense;
+				sent.senses[idx] = "";
+			}
+			 
+			
 			sent.poss[idx] = wordposses[idx].substring(index+1);
+			
 			sent.chars = sent.chars + sent.words[idx];
 
 		}
 		
 		return sent;	
 	}
+    
+    
+    public  static Sentence TagSentConvertSentenceSelf(String tagSequence) {
+    	Sentence sent= new Sentence();		
+        if(tagSequence.trim().length()< 1)  return sent;
+		String[] wordposses = tagSequence.split("\\s+");
+	 	
+		sent.poss = new String[wordposses.length];
+		sent.words = new String[wordposses.length];
+		sent.senses = new String[wordposses.length];
+		sent.chars = "";		
+		for(int idx = 0; idx < wordposses.length; idx++)
+		{
+			//System.out.println(idx+ "="+wordposses[idx]+"=");
+			int index = wordposses[idx].indexOf("_");			
+			String wordSense = wordposses[idx].substring(0, index);
+			int wordIndex  = wordSense.indexOf("|");
+			
+			if(wordIndex>=0){
+				sent.words[idx] = wordSense.substring(0,wordIndex);
+				sent.senses[idx] = wordSense.substring(wordIndex+1);				
+				
+			}else{				
+				sent.words[idx] = wordSense;
+				sent.senses[idx] = wordSense;
+			}
+			 
+			
+			sent.poss[idx] = wordposses[idx].substring(index+1);
+			
+			sent.chars = sent.chars + sent.words[idx];
 
+		}
+		
+		return sent;	
+	}
+    
+    public static void main(String[] args) {
+    	String standfile = "F:\\0test\\corpus\\712CTB\\CTBtest.pos";
+    	String resultfile = "F:\\0test\\temp\\out33Poszpar";
+    	BufferedWriter bwlog ;//= new BufferedWriter(new FileWriter(""));
+    	String errorfile = "F:\\0test\\temp\\out33Poszparerror";
+    	List<String> arrTestSource = new ArrayList<String>();
+    	List<String> arrTestResult = new ArrayList<String>();
+    	File infile = new File(standfile);
+		BufferedInputStream infis;
+		File outfile = new File(resultfile);
+		BufferedInputStream outfis;		
+		try {
+			bwlog = new BufferedWriter(new FileWriter("F:\\0test\\temp\\out33Poszparlog"));
+			infis = new BufferedInputStream(new FileInputStream(standfile));
+			BufferedReader inreader = new BufferedReader(new InputStreamReader(
+					infis, "UTF8"));// Áî®50MÁöÑÁºìÂÜ≤ËØªÂèñÊñáÊú¨Êñá‰ª∂
+			String line = "";			
+			while ((line = inreader.readLine()) != null) {
+				if(line.trim().length()>0){
+					arrTestSource.add(line.trim());
+				}
+			}
+			outfis = new BufferedInputStream(new FileInputStream(resultfile));
+			BufferedReader outReader = new BufferedReader(new InputStreamReader(
+					outfis, "UTF8"));// Áî®50MÁöÑÁºìÂÜ≤ËØªÂèñÊñáÊú¨Êñá‰ª∂
+			line = "";			
+			while ((line = outReader.readLine()) != null) {
+				if(line.trim().length()>0){
+					arrTestResult.add(line.trim());
+				}
+			}
+			Evaluator ob = new Evaluator(arrTestResult,arrTestSource,bwlog,errorfile);
+			ob.Computer();
+			bwlog.close();
+			infis.close();
+			outfis.close();			
+			
+		}catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+			
+		}    	
+    }
+    
+    public String resultProcess(String result){
+    	 String rent="";
+        // String[] wordposses = result.split("\\s+");
+         StringTokenizer st=new StringTokenizer(result," ");
+        //  for(int idx = 0; idx < wordposses.length; idx++)
+        while ( st.hasMoreElements() )       		
+ 		 {
+ 			String wordposses=st.nextToken();
+ 			int index = wordposses.indexOf("_");			
+ 			String wordSense = wordposses.substring(0, index);
+ 			int wordIndex  = wordSense.indexOf("|");
+ 			
+ 			if(wordIndex>=0){
+ 				String temword = wordSense.substring(0,wordIndex);
+ 				String temsense =  wordSense.substring(wordIndex+1);	
+ 				if(temword.equals(temsense)){
+ 					rent +=temword;
+ 				}else{
+ 					rent += temword+"|" + temsense; 					
+ 				}				
+ 			}else{				
+ 				rent += wordSense;
+ 			} 			
+ 			rent += "_" + wordposses.substring(index+1)+" ";
+ 			}
+         return rent.trim();
+    }
 }
