@@ -4,11 +4,11 @@ import java.util.HashMap;
 
 public class Feature {
 
-	public String name="";   //ÌØÕ÷Ãû  ÌØÕ÷Ä£ĞÍ+ÌØÕ÷Öµ  Àı£º "CharUnigram=ÖĞ"
-	public double weight=0;  //µ±Ç°È¨ÖØ
-	public double sum=0;     //ÀúÊ·×ÜÈ¨ÖØ
-	public int lastUpdateIndex=0; //×îºóÒ»´Î¸üĞÂĞòºÅ
-	public double aveWeight=0; //±ê×¼»¯È¨ÖØ
+	public String name="";   //ç‰¹å¾å  ç‰¹å¾æ¨¡å‹+ç‰¹å¾å€¼  ä¾‹ï¼š "CharUnigram=ä¸­"
+	public double weight=0;  //å½“å‰æƒé‡
+	public double sum=0;     //å†å²æ€»æƒé‡
+	public int lastUpdateIndex=0; //æœ€åä¸€æ¬¡æ›´æ–°åºå·
+	public double aveWeight=0; //æ ‡å‡†åŒ–æƒé‡
 
 	 public enum featureName{
 	    	CharUnigram,CharBigram;}
@@ -28,11 +28,12 @@ public class Feature {
 	}
 	public  Feature(){	
 	}
-	public  Feature(String name, double weight, double sum, int index){	
+	public  Feature(String name, double weight, double sum, int index, double aveWeight){	
 		this.name=name;
 		this.weight=weight;
-		this.sum=weight;
+		this.sum=sum;
 		this.lastUpdateIndex=index;
+		this.aveWeight = aveWeight;
 	}
 	
 	public void AveWeight(int curUpdateIndex){
