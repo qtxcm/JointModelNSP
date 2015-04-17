@@ -36,10 +36,10 @@ public class Main {
 			boolean bNewTrain= Boolean.parseBoolean(args[5].trim());
 			int search_width = Integer.parseInt(args[6].trim());
 			String output_path= args[7].trim();
-			String sense_file=args[8].trim();  //单词语义文件  每一行表示：单词：  sense1|sense2|sense3
+			String sense_file=args[8].trim();  //鍗曡瘝璇箟鏂囦欢  姣忎竴琛岃〃绀猴細鍗曡瘝锛� sense1|sense2|sense3
 			String lmChar_file = args[9].trim();
 			String lmWord_file = args[10].trim();
-			BeamSearchForDSP bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, bNewTrain, search_width, output_path, sense_file, output_path, lmChar_file,lmWord_file);		
+			BeamSearch bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, bNewTrain, search_width, output_path, sense_file, output_path, lmChar_file,lmWord_file);		
 			try {
 				bs.trainProcess();
 			} catch (Exception e) {
@@ -56,7 +56,7 @@ public class Main {
 			String out_path = args[7].trim();
 			String lmChar_file = args[8].trim();
 			String lmWord_file = args[9].trim();
-			BeamSearchForDSP bs= new BeamSearch(test_file, model_file, out_file, evaluation_file, search_width,sense_file, out_path, lmChar_file,lmWord_file);	
+			BeamSearch bs= new BeamSearch(test_file, model_file, out_file, evaluation_file, search_width,sense_file, out_path, lmChar_file,lmWord_file);	
 			bs.testProcess();
 		}else if(args[0].trim().equals("-testNoEval")){
 			String test_file= args[1].trim();
@@ -68,10 +68,10 @@ public class Main {
 			String out_path = args[6].trim();
 			String lmChar_file = args[7].trim();
 			String lmWord_file = args[8].trim();
-			BeamSearchForDSP bs= new BeamSearch(test_file, model_file, out_file, "", search_width,sense_file, out_path, lmChar_file,lmWord_file);
+			BeamSearch bs= new BeamSearch(test_file, model_file, out_file, "", search_width,sense_file, out_path, lmChar_file,lmWord_file);
 			bs.testNoEvalProcess();		
 		}
-		else {//同时训练测试
+		else {//鍚屾椂璁粌娴嬭瘯
 			String train_file= args[0].trim();
 			String dev_file= args[1].trim();
 			String test_file= args[2].trim();
@@ -98,7 +98,7 @@ public class Main {
 			
 			//String charpos_file = args[9].trim();
 			//String wordpos_file = args[10].trim();
-			BeamSearchForDSP bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, 
+			BeamSearch bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, 
 					bNewTrain, search_width, test_file, number_of_test,
 					dev_file, number_of_dev, output_path,sense_file, log_file, lmChar_file,lmWord_file);	
 			try {
