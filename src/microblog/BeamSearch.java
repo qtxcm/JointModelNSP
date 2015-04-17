@@ -18,30 +18,36 @@ import java.util.StringTokenizer;
 
 
 import microblog.State;
-
+//Joint Model For WSD Segmentation POS 
 public class BeamSearch {
-	// ´«²ÎÎÄ¼ş
+	// ä¼ å‚æ–‡ä»¶
 	public Double MINVALUE = -Double.MAX_VALUE;
 	public String train_file = "";
-	public String dev_file = ""; // ÓëÑµÁ·ÎÄ¼ş¸ñÊ½ÏàÍ¬£¬×÷Îª»Æ½ğ±ê×¼
-	public String test_file = ""; // ÓëÑµÁ·ÎÄ¼ş¸ñÊ½ÏàÍ¬£¬×÷Îª»Æ½ğ±ê×¼
+	public String dev_file = ""; // ä¸è®­ç»ƒæ–‡ä»¶æ ¼å¼ç›¸åŒï¼Œä½œä¸ºé»„é‡‘æ ‡å‡†
+	public String test_file = ""; // ä¸è®­ç»ƒæ–‡ä»¶æ ¼å¼ç›¸åŒï¼Œä½œä¸ºé»„é‡‘æ ‡å‡†
 	public String output_file = "out";
 	public String model_file = "";
-	public String evaluationError_file = "erresult"; //×÷Îª
+	public String sense_file =""; //WSD:è¡¨ç¤ºæ¯ä¸ªå•è¯çš„è¯æ€§åˆ—è¡¨ï¼Œnormalizationè¡¨ç¤ºéæ ‡å‡†åŒ–è¯çš„æ ‡å‡†åŒ–å•è¯
+	public String lmChar_file = ""; //è¯­è¨€æ¨¡å‹, fromat:	words 	prob	type	ngramNum
+	public String lmWord_file = ""; //è¯­è¨€æ¨¡å‹, fromat:	words 	prob	type	ngramNum
+	public String evaluationError_file = "erresult"; //ä½œä¸º
 	public int number_of_iterations = 10;// training number;
 	public boolean bNewTrain = true;
 	public String output_path = "";
 	public int number_of_test = 0;
 	public int number_of_dev = 0;
 	public int number_of_train = 0;
-	public int search_width = 16; // ËÑË÷¿í¶È
+	public int search_width = 16; // æœç´¢å®½åº¦
 	//public String charPos_file = "";
 	//public String wordPos_file = "";
+	//è¯­è¨€ç‰¹å¾
+	public HashMap<String, Integer> hsngramChar;  //char lmï¼Œ æ¦‚ç‡æ‰€å±ç±»åˆ« ï¼ˆ1ï¼Œ0-10%ï¼Œ2 10%-20%ï¼‰
+	public HashMap<String, Integer> hsngramWord;  //word lmï¼Œ æ¦‚ç‡æ‰€å±ç±»åˆ« ï¼ˆ1ï¼Œ0-10%ï¼Œ2 10%-20%ï¼‰
 	
-	//
 	public List<String> arrTrainSource; // train sentences
-	public List<State> bestStates;// µ±Ç°×îºÃµÄK¸ö×´Ì¬¡£
-	public List<Integer> goldActions = null;// ±ê×¼×´Ì¬
+	public List<State> bestStates;// å½“å‰æœ€å¥½çš„Kä¸ªçŠ¶æ€ã€‚
+	public List<Integer> goldActions = null;// æ ‡å‡†çŠ¶æ€
+	public State  goldSentenceState = null; //æ ‡å‡†çŠ¶æ€
 
 	public List<String> arrTestSource; // test sentences
 	public List<String> arrTestResult;
@@ -50,33 +56,36 @@ public class BeamSearch {
 	public List<String> arrDevResult;
 
 	int curRoundIndexForTrain = 0;
-	public Model model = new Model(); // ÌØÕ÷model;´æ´¢ÌØÕ÷¼°È¨ÖØ
+	int preRoundIndexForTrain = 0; 
+	public Model model = new Model(); // ç‰¹å¾model;å­˜å‚¨ç‰¹å¾åŠæƒé‡
 	
 	int curTrainIterCorrectInstance = 0;
 
 
-	private String CurSentence = "";// ´ı´¦ÀíµÄ¾ä×Ó
-	// private int lenofSentence=0;//´ı´¦ÀíµÄ¾ä×Ó³¤¶È
-	public State[] agenda;// µ±Ç°±ê×¢ĞòÁĞ¼¯
+	private String CurSentence = "";// å¾…å¤„ç†çš„å¥å­
+	// private int lenofSentence=0;//å¾…å¤„ç†çš„å¥å­é•¿åº¦
+	public State[] agenda;// å½“å‰æ ‡æ³¨åºåˆ—é›†
 
 	public BufferedWriter bwlog;
 	public SimpleDateFormat df = new SimpleDateFormat(
-			"yyyy-MM-dd HH:mm:ss SSS ");// ÉèÖÃÈÕÆÚ¸ñÊ½
+			"yyyy-MM-dd HH:mm:ss SSS ");// è®¾ç½®æ—¥æœŸæ ¼å¼
 	HeapSort heapSort = new HeapSort();
-
+	
+	public HashMap<String, String> hmWordSenseSet = new HashMap<String, String>();//å•è¯è¯ä¹‰é›†ï¼ˆåœ¨WSDè¡¨ç¤ºè¯ä¹‰é›†ï¼Œåœ¨Normalizationä¸­è¡¨ç¤ºéè§„èŒƒåŒ–è¯é›†)
+    public boolean IsSPModel = true; //true:åˆ†è¯è”åˆæ¨¡å‹ï¼› false: WSD,Seg,Pos Model
 	/**
 	 * initial training
 	 * 
 	 * @param train_file
-	 *            ÒÑ±ê×¢ÎÄ¼ş
+	 *            å·²æ ‡æ³¨æ–‡ä»¶
 	 * @param model_file
 	 * @param number_of_iterations
 	 * @param bNewTrain
-	 *            ĞÂµÄÑµÁ·
+	 *            æ–°çš„è®­ç»ƒ
 	 */
 	public BeamSearch(String train_file, int number_of_train,
 			String model_file, int number_of_iterations, boolean bNewTrain,
-			int search_width, String outfile_path) {
+			int search_width, String outfile_path, String sense_file, String out_path, String lmChar_file, String lmWord_file) {
 		this.train_file = train_file;
 		this.number_of_train = number_of_train;
 		this.model_file = model_file;
@@ -84,9 +93,11 @@ public class BeamSearch {
 		this.bNewTrain = bNewTrain;
 		this.search_width = search_width;
 		this.output_path = output_path;
-
+		this.sense_file = sense_file;
+		this.lmChar_file = lmChar_file;
+		this.lmWord_file = lmWord_file;
 		try {
-			bwlog = new BufferedWriter(new FileWriter(output_path + "log.txt"));
+			bwlog = new BufferedWriter(new FileWriter(this.output_path + "log.txt"));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -100,21 +111,25 @@ public class BeamSearch {
 	 * initial training
 	 * 
 	 * @param test_file
-	 *            ÒÑ±ê×¢²âÊÔÎÄ¼şÓëÑµÁ·ÎÄ¼ş¸ñÊ½ÏàÍ¬
+	 *            å·²æ ‡æ³¨æµ‹è¯•æ–‡ä»¶ä¸è®­ç»ƒæ–‡ä»¶æ ¼å¼ç›¸åŒ
 	 * @param model_file
 	 * @param output_file
-	 *            ×îÖÕ²âÊÔ½á¹û
+	 *            æœ€ç»ˆæµ‹è¯•ç»“æœ
 	 */
-	public BeamSearch(String test_file, int number_of_test, String model_file,
-			String output_file, String evaluationError_file, int search_width) {
+	public BeamSearch(String test_file,  String model_file,
+			String output_file, String evaluationError_file, int search_width, String sense_file,String out_path, String lm_file, String lmWord_file) {
 		this.test_file = test_file;
-		this.number_of_test = number_of_test;
+		//this.number_of_test = number_of_test;
 		this.model_file = model_file;
 		this.output_file = output_file;
 		this.evaluationError_file = evaluationError_file;
 		this.search_width = search_width;
+		this.sense_file = sense_file;
+		this.output_path = out_path;
+		this.lmChar_file = lmChar_file;
+		this.lmWord_file = lmWord_file;
 		try {
-			bwlog = new BufferedWriter(new FileWriter(output_path + "log.txt"));
+			bwlog = new BufferedWriter(new FileWriter(this.output_path + "log.txt"));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -125,7 +140,7 @@ public class BeamSearch {
 			String model_file, int number_of_iterations, boolean bNewTrain,
 			int search_width, String test_file, int number_of_test,
 			String dev_file, int number_of_dev,
-			String output_path) {
+			String output_path, String sense_file, String log_file, String lmChar_file, String lmWord_file) {
 		this.train_file = train_file;
 		this.number_of_train = number_of_train;
 		this.model_file = model_file;
@@ -137,11 +152,14 @@ public class BeamSearch {
 		this.output_path = output_path;
 		this.dev_file = dev_file;
 		this.number_of_dev = number_of_dev;
+		this.sense_file = sense_file;
+		this.lmChar_file = lmChar_file;
+		this.lmWord_file = lmWord_file;
 		//this.charPos_file = charPos_file;
 		//this.wordPos_file = wordPos_file;
 
 		try {
-			bwlog = new BufferedWriter(new FileWriter(output_path + "log.txt"));
+			bwlog = new BufferedWriter(new FileWriter(output_path + log_file));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -150,12 +168,15 @@ public class BeamSearch {
 
 	public void trainDevTestProcess() throws Exception {
 
-		//System.out.println(df.format(new Date()));// new Date()Îª»ñÈ¡µ±Ç°ÏµÍ³Ê±¼ä
+		//System.out.println(df.format(new Date()));// new Date()ä¸ºè·å–å½“å‰ç³»ç»Ÿæ—¶é—´
 		//initialWordPOS();
+		initialSense();
 		initialTrain();
 		initialTest();
 		initialDev();
-		curRoundIndexForTrain = 0;
+		initialLM();//åˆå§‹åŒ–è¯­è¨€æ¨¡å‹
+		
+		curRoundIndexForTrain = preRoundIndexForTrain;
 		for (int n = 0; n < number_of_iterations; n++) {
 			bwlog.write("train round begin:" + n + "  start " + df.format(new Date())+"\r\n");
 			curTrainIterCorrectInstance = 0;
@@ -168,41 +189,41 @@ public class BeamSearch {
 				{
 					System.out.println("error...");
 				}
-				// bwlog.write("µÚ"+n+"´ÎÑ­»·µÚ"+ i + "¸ö¾ä×Ó ÑµÁ·¿ªÊ¼£º "+
+				// bwlog.write("ç¬¬"+n+"æ¬¡å¾ªç¯ç¬¬"+ i + "ä¸ªå¥å­ è®­ç»ƒå¼€å§‹ï¼š "+
 				// this.goldTagSquence.toString() + "\r\n");
 				trainer(n, i);
-				// bwlog.write("µÚ"+n+"´ÎÑ­»·µÚ"+ i + "¸ö¾ä×Ó ÑµÁ·½áÊø£º "+
+				// bwlog.write("ç¬¬"+n+"æ¬¡å¾ªç¯ç¬¬"+ i + "ä¸ªå¥å­ è®­ç»ƒç»“æŸï¼š "+
 				// this.goldTagSquence.toString() + "\r\n");
 			}
 			model.AveWeight(curRoundIndexForTrain);
 			System.out.println(curRoundIndexForTrain);
 			System.out.println("Correct Intance Num: " + Integer.toString(curTrainIterCorrectInstance));
-			//model.save(output_path + model_file + n);
+			//model.save(model_file+n);
 			bwlog.write("train round end:"+ n+"   " +df.format(new Date())+"\r\n");
 			
 			bwlog.write("develop start:"+"\r\n");
-			// ²âÊÔ
+			// æµ‹è¯•
 			this.arrDevResult.clear();
 			for (int i = 0; i < arrDevSource.size(); i++) {
 
 				this.CurSentence = UnTagSentence(this.arrDevSource.get(i));
 				this.arrDevResult.add(Decoder());
 			}
-			//save(this.arrTestResult, output_path + this.output_file + n);
+			save(this.arrTestResult, output_path + this.output_file + n);
+			
 			Evaluator eva = new Evaluator(this.arrDevResult, arrDevSource, bwlog, this.output_path+evaluationError_file+n);
 			eva.Computer();
 			// curRoundIndexForTrain=1;
-			bwlog.write("develop end:"+"\r\n");
-			
+			bwlog.write("develop end:"+"\r\n");			
 			bwlog.write("test start:"+"\r\n");
-			// ²âÊÔ
+			// æµ‹è¯•
 			this.arrTestResult.clear();
 			for (int i = 0; i < arrTestSource.size(); i++) {
 
 				this.CurSentence = UnTagSentence(this.arrTestSource.get(i));
 				this.arrTestResult.add(Decoder());
 			}
-			//save(this.arrTestResult, output_path + this.output_file + n);
+			save(this.arrTestResult, output_path + this.output_file + n);
 			eva = new Evaluator(this.arrTestResult, arrTestSource, bwlog, this.output_path+evaluationError_file+n);
 			eva.Computer();
 			// curRoundIndexForTrain=1;
@@ -215,12 +236,14 @@ public class BeamSearch {
 	}
 
 	/**
-	 * ¶ÔÊäÈëµÄÓïÁÏ×÷Train
+	 * å¯¹è¾“å…¥çš„è¯­æ–™ä½œTrain
 	 * 
 	 * @throws Exception
 	 */
 	public void trainProcess() throws Exception {
 		initialTrain();
+		this.initialSense();
+		curRoundIndexForTrain = preRoundIndexForTrain;
 		for (int n = 0; n < number_of_iterations; n++) {
 			curTrainIterCorrectInstance = 0;
 			for (int i = 0; i < arrTrainSource.size(); i++) {
@@ -230,18 +253,21 @@ public class BeamSearch {
 				this.goldActions = getGoldActions(this.arrTrainSource.get(i));
 				trainer(n, i);
 			}
+			model.AveWeight(curRoundIndexForTrain);
 			System.out.println("Iterator:" + n);
 		}
 		model.save(model_file);
 	}
 
 	/**
-	 * ²âÊÔ
+	 * æµ‹è¯•
 	 */
 	public void testProcess() {
 		try {
 			initialTest();
+			this.initialSense();
 			this.arrTestResult.clear();
+			this.model.load(model_file);
 			for (int i = 0; i < arrTestSource.size(); i++) {
 				this.CurSentence = UnTagSentence(this.arrTestSource.get(i));
 				this.arrTestResult.add(Decoder());
@@ -249,6 +275,32 @@ public class BeamSearch {
 			save(this.arrTestResult, this.output_file);
 			Evaluator eva = new Evaluator(this.arrTestResult, arrTestSource, bwlog, this.output_path+ this.evaluationError_file);
 			eva.Computer();
+			
+			bwlog.flush();
+			bwlog.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * æµ‹è¯•
+	 */
+	public void testNoEvalProcess() {
+		try {
+			initialTest();
+			this.initialSense();
+			this.model.load(model_file);
+			this.arrTestResult.clear();
+			for (int i = 0; i < arrTestSource.size(); i++) {
+				//this.CurSentence = UnTagSentence(this.arrTestSource.get(i));
+				this.CurSentence = this.arrTestSource.get(i);
+				this.arrTestResult.add(Decoder());
+			}
+			save(this.arrTestResult, this.output_file);
+			//Evaluator eva = new Evaluator(this.arrTestResult, arrTestSource, bwlog, this.output_path+ this.evaluationError_file);
+			//eva.Computer();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -267,7 +319,7 @@ public class BeamSearch {
 		try {
 			fis = new BufferedInputStream(new FileInputStream(file));
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					fis, "UTF8"));// ÓÃ50MµÄ»º³å¶ÁÈ¡ÎÄ±¾ÎÄ¼ş
+					fis, "UTF8"));// ç”¨50Mçš„ç¼“å†²è¯»å–æ–‡æœ¬æ–‡ä»¶
 			String line = "";
 			int i = 0;			
 			while ((line = reader.readLine()) != null) {
@@ -284,7 +336,7 @@ public class BeamSearch {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
+	}	
 	
 	
 	private void initialDev() {
@@ -298,7 +350,7 @@ public class BeamSearch {
 		try {
 			fis = new BufferedInputStream(new FileInputStream(file));
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					fis, "UTF8"));// ÓÃ50MµÄ»º³å¶ÁÈ¡ÎÄ±¾ÎÄ¼ş
+					fis, "UTF8"));// ç”¨50Mçš„ç¼“å†²è¯»å–æ–‡æœ¬æ–‡ä»¶
 			String line = "";
 			int i = 0;			
 			while ((line = reader.readLine()) != null) {
@@ -318,22 +370,23 @@ public class BeamSearch {
 	}
 
 	/**
-	 * ÑµÁ·³õÊ¼»¯
+	 * è®­ç»ƒåˆå§‹åŒ–
 	 */
 	private void initialTrain() {
-		this.arrTrainSource = new ArrayList<String>();;
+		this.arrTrainSource = new ArrayList<String>();
 		if (this.bNewTrain == true) {
 			this.model.newFeatureTemplates();
-			this.model.init(this.train_file);
+			this.model.init(this.train_file, bNewTrain);
 		} else {
-			this.model.load(model_file);
+			this.preRoundIndexForTrain = this.model.load(model_file);
+			this.model.init(this.train_file, bNewTrain);
 		}
 		File file = new File(this.train_file);
 		BufferedInputStream fis;
 		try {
 			fis = new BufferedInputStream(new FileInputStream(file));
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					fis, "UTF8"));// ÓÃ50MµÄ»º³å¶ÁÈ¡ÎÄ±¾ÎÄ¼ş
+					fis, "UTF8"));// ç”¨50Mçš„ç¼“å†²è¯»å–æ–‡æœ¬æ–‡ä»¶
 			String line = "";
 			int i = 0;
 			
@@ -362,17 +415,16 @@ public class BeamSearch {
 	public void trainer(int round, int sentenceIndex) throws Exception {
 		this.agenda = new State[this.search_width];
 		this.agenda[0] = new State();this.agenda[0].bIsGold=true;
-		// curRoundIndexForTrain++;
-
-		curRoundIndexForTrain++;
-		System.out.print("setnece:" + sentenceIndex + " begin:");// +df.format(newDate())); //new Date()Îª»ñÈ¡µ±Ç°ÏµÍ³Ê±¼ä
+		
+		
+		System.out.print("setnece:" + sentenceIndex + " begin:");// +df.format(newDate())); //new Date()ä¸ºè·å–å½“å‰ç³»ç»Ÿæ—¶é—´
 		System.out.flush();
 		long st1 = System.nanoTime();
-
+		curRoundIndexForTrain++;
 		for (int i = 0; i <= this.CurSentence.length(); i++) {
 			String curSChar = "";
 			if(i < this.CurSentence.length()) curSChar = String.valueOf(CurSentence.charAt(i));
-			//bwlog.write("µÚ " + i + "Êı·û´¦Àí:" + curSChar + "\r\n");
+			//bwlog.write("ç¬¬ " + i + "æ•°ç¬¦å¤„ç†:" + curSChar + "\r\n");
 			int agendaLen = 1;
 			if (i == 0)
 				agendaLen = 1;
@@ -389,13 +441,18 @@ public class BeamSearch {
 			for (int j = 0; j < agendaLen; j++) {
 				State state = agenda[j];
 				if(i > 0 && state.bStart) continue;
+				
+				ArrayList<String> arrSenseSet = new ArrayList(); 
+				if(state.size>=1){
+					arrSenseSet = GetNormalSetByWord(state.arrWord[state.size-1]);					
+				}
 
 				if (i > 0  && i< this.CurSentence.length()) {
 					//if(canAction(state, curSChar, state.arrTag[state.size-1], 1) == true){					
 					State tempCands = Append(state, curSChar, null, false); // append action
 					if (tempCands.score > temAgenda[0].score) {
 						if (state.bIsGold == true
-								&& this.goldActions.get(i) == 1000) {
+								&& this.goldActions.get(i) == 1000 ) {
 							tempCands.bIsGold = true;
 						} else
 							tempCands.bIsGold = false;
@@ -403,28 +460,62 @@ public class BeamSearch {
 					}
 					//}				
 				}
-				if(i== this.CurSentence.length()){//×îºóÒ»¸öÎ±×Ö·û #_PU
-					State temCand = Finish(state, null, false);// end action
-					if (temCand.score >= temAgenda[0].score) {
-						if (state.bIsGold == true
-								&& this.goldActions.get(i) == 2000) {
-							temCand.bIsGold = true;
-						} else
-							temCand.bIsGold = false;
-						heapSort.BestAgendaSort(temAgenda, temCand);
-					}
-				}else {
-					for (int k = 0; k < State.arrPOS.length; k++) {
-						if(CanSeperate(state, curSChar,State.arrPOS[k]) == true){		
-							State temCand = Sep(state, curSChar, k, null, false);// seperate action
+				if(i== this.CurSentence.length()){//æœ€åä¸€ä¸ªä¼ªå­—ç¬¦ #_PU
+					if(arrSenseSet.size()>0){
+					    for(int m=0;m<arrSenseSet.size();m++){					    	
+					    	State temCand = Finish(state, null, false, arrSenseSet.get(m));// end action
 							if (temCand.score >= temAgenda[0].score) {
-								if (state.bIsGold == true
-										&& this.goldActions.get(i) == k) {
-									temCand.bIsGold = true;
+								if (state.bIsGold == true && this.goldActions.get(i) == 2000) {
+									if(temCand.size>=1){										
+										if(equalNormal(temCand, this.goldSentenceState, 1) == true)
+										{
+											temCand.bIsGold = true;
+										}else{
+											temCand.bIsGold = false;
+										}
+									}else{
+										temCand.bIsGold = true;
+									}
 								} else
 									temCand.bIsGold = false;
 								heapSort.BestAgendaSort(temAgenda, temCand);
 							}
+					    }						
+					}				
+				}else {
+					for (int k = 0; k < State.arrPOS.length; k++) {
+						if(i==0){
+							{//ä¸è§„èŒƒå€™é€‰
+								State temCand = Sep(state, curSChar, k, null, false, "");// seperate action
+								if (temCand.score >= temAgenda[0].score) {
+									if (state.bIsGold == true
+											&& this.goldActions.get(i) == k) {
+										temCand.bIsGold = true;
+									} else
+										temCand.bIsGold = false;
+									heapSort.BestAgendaSort(temAgenda, temCand);
+								}								
+							}
+						}
+						if(CanSeperate(state, curSChar,State.arrPOS[k]) == true){	
+							if(arrSenseSet.size()>0){
+							    for(int m=0;m<arrSenseSet.size();m++){							    	
+							    	State temCand = Sep(state, curSChar, k, null, false, arrSenseSet.get(m));// seperate action
+									if (temCand.score >= temAgenda[0].score) {	
+										
+										if (state.bIsGold == true && this.goldActions.get(i) == k ) {
+											if(equalNormal(temCand, this.goldSentenceState,2)== true){
+												temCand.bIsGold = true;
+											}else{
+												temCand.bIsGold = false;
+											}											
+										} else
+											temCand.bIsGold = false;
+										
+										heapSort.BestAgendaSort(temAgenda, temCand);
+									}
+							    }								
+							}					
 						}
 					}
 				}
@@ -432,7 +523,7 @@ public class BeamSearch {
 			//System.out.println("1:" + (System.nanoTime() - st2));
 			st2 = System.nanoTime();
 			this.agenda = temAgenda;
-			// ¹¹Ôì±ê×¼µÄ²¿·ÖĞòÁĞ
+			// æ„é€ æ ‡å‡†çš„éƒ¨åˆ†åºåˆ—
 			boolean bEqual = false;
 			for (int m = 0; m < this.agenda.length; m++) {
 				if (this.agenda[m].bIsGold == true)
@@ -442,16 +533,13 @@ public class BeamSearch {
 				}
 			}
 
-			if (bEqual == false)// Ã»ÓĞ±ê×¢ĞòÁĞÓë»Æ½ğ±ê×¼ÏàÍ¬
-			{
-				//for (int p = 0; p <= i; p++) {
-				//	model.UpdateWeighth(this.arrCurSentecFeature[p], 1,	curRoundIndexForTrain);// ±ê×¼È¨ÖØÔö¼Ó
-				//}
-				//model.printWeight(bwlog);
+			if (bEqual == false)// æ²¡æœ‰æ ‡æ³¨åºåˆ—ä¸é»„é‡‘æ ‡å‡†ç›¸åŒ
+			{				
 				State bestState = Best(this.agenda, 1)[0];
 				List<Integer> predActions = bestState.hisActions;			
-				double bestScore = bestState.score;
-				double[] scores = updateParameters(predActions);
+				double bestScore = bestState.score;				
+				double[] scores = updateParameters(predActions, bestState);
+				
 				if(Math.abs(bestScore- scores[0]) > 0.00001)
 				{
 					System.out.println("score not match...");
@@ -471,7 +559,7 @@ public class BeamSearch {
 		//System.out.println("" + (System.nanoTime() - st1));
 		long st2 = System.nanoTime();
 		this.agenda = Best(this.agenda, 1);
-		if (this.agenda[0].bIsGold == false) {// ×îÖÕµÄ½á¹ûÓë±ê×¼²»Ïà·û
+		if (this.agenda[0].bIsGold == false) {// æœ€ç»ˆçš„ç»“æœä¸æ ‡å‡†ä¸ç›¸ç¬¦
 			List<Integer> predActions = this.agenda[0].hisActions;
 			if(predActions.size() != goldActions.size())
 			{
@@ -479,7 +567,8 @@ public class BeamSearch {
 			}
 			double bestScore = this.agenda[0].score;
 			
-			double[] scores = updateParameters(predActions);
+			double[] scores = updateParameters(predActions, this.agenda[0]);
+			//curRoundIndexForTrain++;
 			if(Math.abs(bestScore- scores[0]) > 0.00001)
 			{
 				System.out.println("score not match...");
@@ -497,34 +586,13 @@ public class BeamSearch {
 		}
 		//System.out.println("" + (System.nanoTime() - st2));
 		// System.out.println("setnece:"+ curRoundIndexForTrain+" endupdate:"+
-		// df.format(new Date()));// new Date()Îª»ñÈ¡µ±Ç°ÏµÍ³Ê±¼ä
+		// df.format(new Date()));// new Date()ä¸ºè·å–å½“å‰ç³»ç»Ÿæ—¶é—´
 
 	}
 
+
 	/**
-	 * ÒÑ±ê×¢ĞòÁĞ×ª»¯ÎªState¶ÔÏó
-	 * 
-	 * @param tagSequence
-	 * @return
-	 */
-/*	
-	public State TagSeConvertState(String tagSequence) {
-		State newState = new State();
-		StringTokenizer token = new StringTokenizer(tagSequence, " ");
-		int i = 0;
-		while (token.hasMoreElements()) {
-			String tempStr = token.nextToken();
-			int index = tempStr.indexOf("_");
-			newState.arrWord[i] = tempStr.substring(0, index);
-			newState.arrTag[i] = tempStr.substring(index + 1, tempStr.length());
-			i++;
-		}
-		newState.size = i;
-		return newState;
-	}
-*/
-	/**
-	 * ½âÂëÆ÷
+	 * è§£ç å™¨
 	 * 
 	 * @return
 	 * @throws Exception
@@ -535,7 +603,7 @@ public class BeamSearch {
 		for (int i = 0; i <= this.CurSentence.length(); i++) {
 			String curSChar = "";
 			if(i < this.CurSentence.length())curSChar = String.valueOf(CurSentence.charAt(i));
-			//bwlog.write("µÚ " + i + "Êı·û´¦Àí:" + curSChar + "\r\n");
+			//bwlog.write("ç¬¬ " + i + "æ•°ç¬¦å¤„ç†:" + curSChar + "\r\n");
 			int agendaLen = 1;
 			if (i == 0)
 				agendaLen = 1;
@@ -548,76 +616,62 @@ public class BeamSearch {
 				temAgenda[o].score = MINVALUE;				
 			}
 			
-			for (int j = 0; j < agendaLen; j++) {// ±éÀú×´Ì¬ĞòÁĞ£¬Éú³ÉĞÂµÄ×´Ì¬
+			for (int j = 0; j < agendaLen; j++) {// éå†çŠ¶æ€åºåˆ—ï¼Œç”Ÿæˆæ–°çš„çŠ¶æ€
 				State state = agenda[j];
 				if(i > 0 && state.bStart)continue;
-				if (i > 0 && i< this.CurSentence.length()) {//×îºóÒ»¸öÎ±½áÊø·ûÖ»ÄÜsep	
-					//if(canAction(state, curSChar, state.arrTag[state.size-1], 1) == true){
+				
+				ArrayList<String> arrSenseSet = new ArrayList(); //å¯¹å‰ä¸€ä¸ªå­—ç¬¦è¿›è¡Œæ ‡æ³¨åŒ–
+				if(state.size>=1){
+					arrSenseSet = GetNormalSetByWord(state.arrWord[state.size-1]);
+				}
+				
+				if (i > 0 && i< this.CurSentence.length()) {//æœ€åä¸€ä¸ªä¼ªç»“æŸç¬¦åªèƒ½sep					
 						State tempCands = Append(state, curSChar, null, true); // append
 						if (tempCands.score > temAgenda[0].score) {													// action
 							heapSort.BestAgendaSort(temAgenda, tempCands);
-						}
-					//}
+						}					
 				}
-				if(i== this.CurSentence.length()){//×îºóÒ»¸öÎ±×Ö·û #_PU
-					State temCand = Finish(state, null, true);// seperate
-					if (temCand.score > temAgenda[0].score) {															
-						heapSort.BestAgendaSort(temAgenda, temCand);
+				if(i== this.CurSentence.length()){//æœ€åä¸€ä¸ªä¼ªå­—ç¬¦ #_PU					
+					if(arrSenseSet.size()>0){
+					    for(int m=0;m<arrSenseSet.size();m++){
+					    	State temCand = Finish(state, null, true, arrSenseSet.get(m));// seperate
+							if (temCand.score > temAgenda[0].score) {															
+								heapSort.BestAgendaSort(temAgenda, temCand);
+							}
+					    }						
 					}
 				}else{
 					for (int k = 0; k < State.arrPOS.length; k++) {
-						if(CanSeperate(state, curSChar,State.arrPOS[k]) == true){				
-							State temCand = Sep(state, curSChar, k, null, true);// seperate
+						if(i==0){
+							State temCand = Sep(state, curSChar, k, null, true, "");// seperate
 							if (temCand.score > temAgenda[0].score) {															
 								heapSort.BestAgendaSort(temAgenda, temCand);
+							}
+						}
+						if(CanSeperate(state, curSChar,State.arrPOS[k]) == true){													
+							if(arrSenseSet.size()>0){
+							    for(int m=0;m<arrSenseSet.size();m++){
+							    	State temCand = Sep(state, curSChar, k, null, true, arrSenseSet.get(m));// seperate
+									if (temCand.score > temAgenda[0].score) {															
+										heapSort.BestAgendaSort(temAgenda, temCand);
+									}
+							    }								
 							}
 						}
 					}
 				}
 			}
 
-			this.agenda = temAgenda; // ÇóÇ°K¸ö·ÖÊı×î¸ßµÄĞòÁĞ
+			this.agenda = temAgenda; // æ±‚å‰Kä¸ªåˆ†æ•°æœ€é«˜çš„åºåˆ—
 		}
 		this.agenda = Best(this.agenda, 1);
 
 		return this.agenda[0].toString();
 	}
 	
-	/**
-	 * 
-	 * @param state
-	 * @param curChar
-	 * @param action
-	 * @return
-	 */
-/*
-	public boolean canAction(State state, String curChar, String pos, int action){
-		
-		//return true;
-		boolean bRet = false;
-		
-		String word = curChar;
-		if(action==1)//app actin
-		{
-			word = state.arrWord[state.size-1]+"curChar";
-		}
 
-		
-		HashSet<String> closeset = model.PosCloseSet.get(pos);
-		if(closeset != null){
-			if(closeset.contains(word)){
-				bRet = true;
-			}			
-		}else{
-			bRet = true;
-		}			
-		
-		return bRet;
-		
-	}
-*/
 	/**
-	 * ¼ÆËãÇ°k¸ö×î¸ßµÄ±ê×¢ĞòÁĞ
+	 * è®¡ç®—å‰kä¸ªæœ€é«˜çš„æ ‡æ³¨åºåˆ—
 	 * 
 	 * @param n
 	 * @return
@@ -637,53 +691,101 @@ public class BeamSearch {
 		String c_0 = "", c_1 = "", c_2 = "";
 		String w_0 = "", w_1 = "", w_2 = "", t_0 = "", t_1 = "", t_2 = "";
 		String start_w_1 = "", end_w_1 = "", end_w_2 = "";
+		String n_1="", n_2="", n_3=""; //previous three word of normalization  sequence
+		String start_n_1 = "", end_n_1 = "", end_n_2 = "";
+		int len_n_1 =0, len_n_2=0;
 		int len_w_1 = 0, len_w_2 = 0;
 		int size = state.size;
+		String normalSent = ""; 
+		
+		
 		if (size > 0) {
 			
 			if(state.lastAction != 2000)
 			{
 				w_0 = state.arrWord[size - 1];
 				t_0 = state.arrTag[size - 1];
+				//n_0 = state.arrSense[size - 1];
 				w_1 = "#S#";
 				t_1 = "#T#";
+				n_1 = "#S#";
 				w_2 = "#S#";
 				t_2 = "#T#";
+				n_2 = "#S#";
 				if (size > 1) {
 					w_1 = state.arrWord[size - 2];
 					t_1 = state.arrTag[size - 2];
+					n_1 = state.arrNormal[size - 2];
 				}
 				if (size > 2) {
 					w_2 = state.arrWord[size - 3];
 					t_2 = state.arrTag[size - 3];
+					n_2 = state.arrNormal[size - 3];
 				}
+				if(size>3){
+					n_3 = state.arrNormal[size - 4];
+				}
+				
+				for(int j=size - 3; j>=0;j--){
+					normalSent = state.arrNormal[j] + normalSent;
+					if(normalSent.length()>3){//å› ä¸ºæ˜¯å››å…ƒï¼Œåªå–å‰é¢ä¸‰ä¸ªå­—ç¬¦						
+						break;
+					}				
+				}				
+				//normalSent = normalSent + n_1;				
 			}
 			else
 			{
 				w_0 = "#S#";
 				t_0 = "#T#";
+				//n_0 = "#N#";
 				w_1 = state.arrWord[size - 1];
 				t_1 = state.arrTag[size - 1];
+				n_1 = state.arrNormal[size - 1];
 				w_2 = "#S#";
 				t_2 = "#T#";
 				if (size > 1) {
 					w_2 = state.arrWord[size - 2];
 					t_2 = state.arrTag[size - 2];
+					n_2 = state.arrNormal[size - 2];
 				}
-
+				if(size>2){
+					n_3 = state.arrNormal[size - 3];
+				}
+				for(int j=size - 2; j>=0;j--){
+					normalSent = state.arrNormal[j] + normalSent;
+					if(normalSent.length()>3) break;
+				}				
 			}
+			if(normalSent.length()>3)
+				normalSent.substring(normalSent.length()-3, normalSent.length());
+			normalSent = normalSent + n_1;
 			
 			if (w_1.equals("#S#")) {
-				len_w_1 = 0;
+				len_w_1 = 0;				
 			} else {
 				len_w_1 = w_1.length();
 				if(len_w_1>5) len_w_1 = 5;
-			}
+			}			
 			if (w_2.equals("#S#")) {
 				len_w_2 = 0;
 			} else {
 				len_w_2 = w_2.length();
 				if(len_w_2>5) len_w_2 = 5;
+			}
+			
+			if (n_1.equals("#S#")) {
+				len_n_1 = 0;				
+			} else {
+				len_n_1 = n_1.length();
+				if(len_w_1>5) len_n_1 = 5;
+			}
+			
+			if (n_2.equals("#S#")) {
+				len_n_2 = 0;
+			} else {
+				len_n_2 = n_2.length();
+				if(len_n_2>5) len_n_2 = 5;
 			}
 
 			if (state.lastAction != 1000 && state.lastAction >= 0) {
@@ -730,26 +832,38 @@ public class BeamSearch {
 			} else {
 				end_w_2 = "S2";
 			}
+			if (len_n_1 > 0) {
+				start_n_1 = n_1.substring(0, 1);
+				end_n_1 = n_1.substring(n_1.length() - 1, n_1.length());
+			} else {
+				start_n_1 = "S1";
+				end_n_1 = "S1";
+			}
+			if (len_n_2 > 0) {
+				end_n_2 = n_2.substring(n_2.length() - 1, n_2.length());
+			} else {
+				end_n_2 = "S2";
+			}
 
-			// ¹¹ÔìÌØÕ÷
+			// æ„é€ ç‰¹å¾
 			Feature fe = null;
 			String strfeat = null;
 			if (state.lastAction == 1000) {// app
-				strfeat = "ConsecutiveChars=" + c_1	+ c_0;
+				strfeat = "OrgConsecutiveChars=" + c_1	+ c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapConsecutiveChars.get(strfeat);
+				fe = model.m_mapOrgConsecutiveChars.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "TagByChar=" + t_0 + c_0;
+				strfeat = "OrgTagByChar=" + t_0 + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByChar.get(strfeat);
+				fe = model.m_mapOrgTagByChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
-				strfeat = "TaggedCharByFirstChar=" + c_0 + t_0 + c_1;
+				strfeat = "OrgTaggedCharByFirstChar=" + c_0 + t_0 + c_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTaggedCharByFirstChar.get(strfeat);
+				fe = model.m_mapOrgTaggedCharByFirstChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight :fe.weight;
 				
@@ -777,275 +891,597 @@ public class BeamSearch {
 //				}
 
 			} else {
-				strfeat = "SeenWords=" + w_1;
+				/*strfeat = "OrgSeenWords=" + w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapSeenWords.get(strfeat);
+				fe = model.m_mapOrgSeenWords.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
-				strfeat = "LastWordByWord=" + w_1 + "_" + w_2;
+				strfeat = "OrgLastWordByWord=" + w_1 + "_" + w_2;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastWordByWord.get(strfeat);
+				fe = model.m_mapOrgLastWordByWord.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
 				
 				if(len_w_1 == 1){
-					strfeat = "OneCharWord=" + w_1;
+					strfeat = "OrgOneCharWord=" + w_1;
 					if(fvs != null)fvs.add(strfeat);
-					fe = model.m_mapOneCharWord.get(strfeat);
+					fe = model.m_mapOrgOneCharWord.get(strfeat);
 					if (fe != null)
 						dScore += bAverage ? fe.aveWeight : fe.weight;
 					
-					strfeat = "TagOfOneCharWord=" + c_2 + c_1 + c_0 + t_1;
+					strfeat = "OrgTagOfOneCharWord=" + c_2 + c_1 + c_0 + t_1;
 					if(fvs != null)fvs.add(strfeat);
-					fe = model.m_mapTagOfOneCharWord.get(strfeat);
+					fe = model.m_mapOrgTagOfOneCharWord.get(strfeat);
 					if (fe != null)
 						dScore += bAverage ? fe.aveWeight : fe.weight;				
 				}
 				
-				strfeat = "FirstAndLastChars=" + start_w_1 + end_w_1;
+				strfeat = "OrgFirstAndLastChars=" + start_w_1 + end_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapFirstAndLastChars.get(strfeat);
+				fe = model.m_mapOrgFirstAndLastChars.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "LengthByLastChar=" + end_w_1 + len_w_1;
+				strfeat = "OrgLengthByLastChar=" + end_w_1 + len_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLengthByLastChar.get(strfeat);
+				fe = model.m_mapOrgLengthByLastChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "LengthByFirstChar=" + start_w_1 + len_w_1;
+				strfeat = "OrgLengthByFirstChar=" + start_w_1 + len_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLengthByFirstChar.get(strfeat);
+				fe = model.m_mapOrgLengthByFirstChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;					
 				
-				strfeat = "CurrentWordLastChar=" + end_w_2 + "_" + w_1;
+				strfeat = "OrgCurrentWordLastChar=" + end_w_2 + "_" + w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapCurrentWordLastChar.get(strfeat);
+				fe = model.m_mapOrgCurrentWordLastChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "LastWordByLastChar="	+ end_w_2 + end_w_1;
+				strfeat = "OrgLastWordByLastChar="	+ end_w_2 + end_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastWordByLastChar.get(strfeat);
+				fe = model.m_mapOrgLastWordByLastChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "LengthByLastWord=" + w_2 + len_w_1;
+				strfeat = "OrgLengthByLastWord=" + w_2 + len_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLengthByLastWord.get(strfeat);
+				fe = model.m_mapOrgLengthByLastWord.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
-				strfeat = "LastLengthByWord=" + len_w_2 + w_1;
+				strfeat = "OrgLastLengthByWord=" + len_w_2 + w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastLengthByWord.get(strfeat);
+				fe = model.m_mapOrgLastLengthByWord.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 					
-				strfeat = "CurrentTag=" + w_1 + t_1;
+				strfeat = "OrgCurrentTag=" + w_1 + t_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapCurrentTag.get(strfeat);
+				fe = model.m_mapOrgCurrentTag.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
 				//if(len_w_1<=2){
-				strfeat = "TagByWordAndPrevChar=" + w_1 + t_1 + end_w_2;
+				strfeat = "OrgTagByWordAndPrevChar=" + w_1 + t_1 + end_w_2;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByWordAndPrevChar.get(strfeat);
+				fe = model.m_mapOrgTagByWordAndPrevChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "TagByLastWord=" + w_1 + t_0;
+				strfeat = "OrgTagByLastWord=" + w_1 + t_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByLastWord.get(strfeat);
+				fe = model.m_mapOrgTagByLastWord.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "TagByWordAndNextChar=" + w_1 + t_1 + c_0;
+				strfeat = "OrgTagByWordAndNextChar=" + w_1 + t_1 + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByWordAndNextChar.get(strfeat);
+				fe = model.m_mapOrgTagByWordAndNextChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;					
 				//}
 				
-				strfeat = "LastTagByWord=" + w_1 + t_2;
+				strfeat = "OrgLastTagByWord=" + w_1 + t_2;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastTagByWord.get(strfeat);
+				fe = model.m_mapOrgLastTagByWord.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
-				strfeat = "TagByLastChar=" + end_w_1 + t_1;
+				strfeat = "OrgTagByLastChar=" + end_w_1 + t_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByLastChar.get(strfeat);
+				fe = model.m_mapOrgTagByLastChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
-				strfeat = "LastTagByTag=" + t_1 + t_0;
+				strfeat = "OrgLastTagByTag=" + t_1 + t_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastTagByTag.get(strfeat);
+				fe = model.m_mapOrgLastTagByTag.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "Tag0Tag1Size1=" + t_1 + t_0 + len_w_1;
+				strfeat = "OrgTag0Tag1Size1=" + t_1 + t_0 + len_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTag0Tag1Size1.get(strfeat);
+				fe = model.m_mapOrgTag0Tag1Size1.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "Tag1Tag2Size1=" + t_2 + t_1 + len_w_1;
+				strfeat = "OrgTag1Tag2Size1=" + t_2 + t_1 + len_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTag1Tag2Size1.get(strfeat);
+				fe = model.m_mapOrgTag1Tag2Size1.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "Tag0Tag1Tag2Size1=" + t_2 + t_1 + t_0 + len_w_1;
+				strfeat = "OrgTag0Tag1Tag2Size1=" + t_2 + t_1 + t_0 + len_w_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTag0Tag1Tag2Size1.get(strfeat);
+				fe = model.m_mapOrgTag0Tag1Tag2Size1.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "LastTwoTagsByTag=" + t_2 + t_1 + t_0;
+				strfeat = "OrgLastTwoTagsByTag=" + t_2 + t_1 + t_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastTwoTagsByTag.get(strfeat);
+				fe = model.m_mapOrgLastTwoTagsByTag.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 								
-				strfeat = "TagByChar=" + t_0 + c_0;
+				strfeat = "OrgTagByChar=" + t_0 + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByFirstChar.get(strfeat);
+				fe = model.m_mapOrgTagByFirstChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 								
-				strfeat = "FirstCharBy2Tags=" + t_0 + t_1 + c_0;
+				strfeat = "OrgFirstCharBy2Tags=" + t_0 + t_1 + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapFirstCharBy2Tags.get(strfeat);
+				fe = model.m_mapOrgFirstCharBy2Tags.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;				
 
-				strfeat = "SeparateChars=" + c_1 + c_0;
+				strfeat = "OrgSeparateChars=" + c_1 + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapSeparateChars.get(strfeat);
+				fe = model.m_mapOrgSeparateChars.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;			
 				
-				strfeat = "LastWordFirstChar=" + w_1 + "_" + c_0;
+				strfeat = "OrgLastWordFirstChar=" + w_1 + "_" + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapLastWordFirstChar.get(strfeat);
+				fe = model.m_mapOrgLastWordFirstChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "FirstCharLastWordByWord=" + start_w_1 + c_0;
+				strfeat = "OrgFirstCharLastWordByWord=" + start_w_1 + c_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapFirstCharLastWordByWord.get(strfeat);
+				fe = model.m_mapOrgFirstCharLastWordByWord.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 
-				strfeat = "TaggedSeparateChars=" + end_w_1 + t_1 + c_0 + t_0;
+				strfeat = "OrgTaggedSeparateChars=" + end_w_1 + t_1 + c_0 + t_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTaggedSeparateChars.get(strfeat);
+				fe = model.m_mapOrgTaggedSeparateChars.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "TagWordTag=" + t_2 + w_1 + t_0;
+				strfeat = "OrgTagWordTag=" + t_2 + w_1 + t_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagWordTag.get(strfeat);
+				fe = model.m_mapOrgTagWordTag.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;
 				
-				strfeat = "WordTagTag="	+ w_2 + t_1 + t_0;
+				strfeat = "OrgWordTagTag="	+ w_2 + t_1 + t_0;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapWordTagTag.get(strfeat);
+				fe = model.m_mapOrgWordTagTag.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;				
 
-				strfeat = "TagByFirstChar="	+ start_w_1 + t_1;
+				strfeat = "OrgTagByFirstChar="	+ start_w_1 + t_1;
 				if(fvs != null)fvs.add(strfeat);
-				fe = model.m_mapTagByFirstChar.get(strfeat);
+				fe = model.m_mapOrgTagByFirstChar.get(strfeat);
 				if (fe != null)
 					dScore += bAverage ? fe.aveWeight : fe.weight;		
 				
-				// feature name misunderstanding here
-				/*
-				{
-					if(model.m_wordFreq.containsKey(w_1)
-							&& model.m_wordFreq.get(w_1) > 5
-							&& model.m_wordPOSSets.get(w_1).containsKey(t_1))
-					{
-						strfeat = "SeparateCharCat="+ t_1;
+				for (int j = 0; j < len_w_1 - 1; ++j) {
+					strfeat = "OrgTaggedCharByLastChar=" + w_1.substring(j, j + 1) + t_1 + end_w_1;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapOrgTaggedCharByLastChar.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+				}	*/
+				
+				
+				
+				//normalization
+				strfeat = "NorSeenWords=" + n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorSeenWords.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;
+
+				strfeat = "NorLastWordByWord=" + n_1 + "_" + n_2;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastWordByWord.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;
+				
+				
+				if(len_n_1 == 1){
+					strfeat = "NorOneCharWord=" + n_1;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapNorOneCharWord.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ?fe.aveWeight*1.0 : fe.weight*1.0;
+					
+					strfeat = "NorTagOfOneCharWord=" + c_2 + c_1 + c_0 + t_1;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapNorTagOfOneCharWord.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;			
+				}
+				
+				strfeat = "NorFirstAndLastChars=" + start_n_1 + end_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorFirstAndLastChars.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;
+				
+				strfeat = "NorLengthByLastChar=" + end_n_1 + len_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLengthByLastChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;
+				
+				strfeat = "NorLengthByFirstChar=" + start_n_1 + len_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLengthByFirstChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;					
+				
+				strfeat = "NorCurrentWordLastChar=" + end_n_2 + "_" + n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorCurrentWordLastChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorLastWordByLastChar="	+ end_n_2 + end_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastWordByLastChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorLengthByLastWord=" + n_2 + len_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLengthByLastWord.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+
+				strfeat = "NorLastLengthByWord=" + len_n_2 + n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastLengthByWord.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+					
+				strfeat = "NorCurrentTag=" + n_1 + t_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorCurrentTag.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+
+				//if(len_w_1<=2){
+				strfeat = "NorTagByWordAndPrevChar=" + n_1 + t_1 + end_n_2;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagByWordAndPrevChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorTagByLastWord=" + n_1 + t_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagByLastWord.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorTagByWordAndNextChar=" + n_1 + t_1 + c_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagByWordAndNextChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;				
+				
+				
+				strfeat = "NorLastTagByWord=" + n_1 + t_2;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastTagByWord.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+
+				strfeat = "NorTagByLastChar=" + end_n_1 + t_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagByLastChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+
+				strfeat = "NorLastTagByTag=" + t_1 + t_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastTagByTag.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorTag0Tag1Size1=" + t_1 + t_0 + len_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTag0Tag1Size1.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorTag1Tag2Size1=" + t_2 + t_1 + len_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTag1Tag2Size1.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorTag0Tag1Tag2Size1=" + t_2 + t_1 + t_0 + len_n_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTag0Tag1Tag2Size1.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorLastTwoTagsByTag=" + t_2 + t_1 + t_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastTwoTagsByTag.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+								
+				strfeat = "NorTagByChar=" + t_0 + c_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagByFirstChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;
+								
+				strfeat = "NorFirstCharBy2Tags=" + t_0 + t_1 + c_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorFirstCharBy2Tags.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;				
+
+				strfeat = "NorSeparateChars=" + c_1 + c_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorSeparateChars.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;			
+				
+				strfeat = "NorLastWordFirstChar=" + n_1 + "_" + c_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorLastWordFirstChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorFirstCharLastWordByWord=" + start_n_1 + c_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorFirstCharLastWordByWord.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+
+				strfeat = "NorTaggedSeparateChars=" + end_n_1 + t_1 + c_0 + t_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTaggedSeparateChars.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorTagWordTag=" + t_2 + n_1 + t_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagWordTag.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;
+				
+				strfeat = "NorWordTagTag="	+ n_2 + t_1 + t_0;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorWordTagTag.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;				
+
+				strfeat = "NorTagByFirstChar="	+ start_n_1 + t_1;
+				if(fvs != null)fvs.add(strfeat);
+				fe = model.m_mapNorTagByFirstChar.get(strfeat);
+				if (fe != null)
+					dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;;		
+				
+				for (int j = 0; j < len_n_1 - 1; ++j) {
+					strfeat = "NorTaggedCharByLastChar=" + n_1.substring(j, j + 1) + t_1 + end_n_1;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapNorTaggedCharByLastChar.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight*1.0 : fe.weight*1.0;
+				}
+				
+				//è¯­è¨€æ¨¡å‹ ç‰¹å¾
+				
+				int len = normalSent.length();
+				for(int i= len-len_n_1 ; i<len; i++){
+					String word2 = "";
+					String word3 = "";
+					String word4 = "";
+					if(i>=1){
+						word2 =  normalSent.substring(i-1,i+1);
+						word2 = CovertAddSpace(word2);
+						Integer type2 = hsngramChar.get(word2);
+						if(type2 != null ) //type2 =10;						
+						{strfeat = "Gram2=Char"	+ type2;
 						if(fvs != null)fvs.add(strfeat);
-						fe = model.m_mapSeparateCharCat.get(strfeat);
+						fe = model.m_mapGram2.get(strfeat);
+						if (fe != null)
+							dScore += bAverage ? fe.aveWeight : fe.weight;	
+						}
+						
+						if(i>=2){
+							word3 =  normalSent.substring(i-2,i+1);
+							word3 = CovertAddSpace(word3);
+							Integer type3 = hsngramChar.get(word3);
+							if(type3 != null ) //type3 =10;
+							{					
+							strfeat = "Gram3=Char"	+ type3;
+							if(fvs != null)fvs.add(strfeat);
+							fe = model.m_mapGram3.get(strfeat);
+							if (fe != null)
+								dScore += bAverage ? fe.aveWeight : fe.weight;	
+							}
+							
+							
+							if(i>=3){
+								word4 =  normalSent.substring(i-3,i+1);	
+								word4 = CovertAddSpace(word4);
+								Integer type4 = hsngramChar.get(word4);
+								if(type4 != null )// type4 =10;						
+								{strfeat = "Gram4=Char"	+ type4;
+								if(fvs != null)fvs.add(strfeat);
+								fe = model.m_mapGram4.get(strfeat);
+								if (fe != null)
+									dScore += bAverage ? fe.aveWeight : fe.weight;	
+								}
+							}
+						}
+					}				
+				}
+				
+				//åŸºäºè¯
+				if(n_1.length()>0){
+					String words =  n_1;
+					Integer type4 = hsngramWord.get(words);
+					if(type4 != null ) //type4 =10;						
+					{strfeat = "Gram4=Word"	+ type4;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapGram4.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					}
+				}
+				if(n_2.length()>0){
+					String words = n_2 + " " + n_1;
+					Integer type2 = hsngramWord.get(words);
+					if(type2 != null ) //type2 =10;						
+					{strfeat = "Gram2=Word"	+ type2;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapGram2.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					}
+				}
+				if(n_3.length()>0){
+					String words = n_3 + " " + n_2 + " " + n_1;
+					Integer type3 = hsngramWord.get(words);
+					if(type3 != null ) //type3 =10;						
+					{strfeat = "Gram3=Word"	+ type3;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapGram3.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					}
+				}
+				
+				
+				//æ¶ˆæ­§è¯ä¹‰ç‰¹å¾  add by qiantao
+				/*if(n_1!=null && n_1.length()>0){
+					strfeat = "WordSense="	+ w_1 + n_1;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;	
+					
+					strfeat = "LastWordAndWordSense="	+  n_1+w_0;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapLastWordAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "PreWordAndWordSense="	+  n_1+w_2;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapPreWordAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "EndPreAndWordSense="	+  n_1+end_w_2;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapEndPreAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;					
+						
+					
+					strfeat = "LastCharAndWordSense=" + n_1 + c_0;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapLastCharAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "TagWordSense="	+ n_1 + t_1;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapTagWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "PreTagAndWordSense="	+  n_1 + t_2;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapPreTagAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "LastTagAndWordSense="	+  n_1 + t_0;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapLastTagAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "ThreeWordAndSense="	+  n_1+w_0+w_2;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapThreeWordAndSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "PreLastTagAndWordSense="	+  n_1+t_0+t_2;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapPreLastTagAndWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					if(n_2!=null && n_2.length()>0){
+						
+						strfeat = "TwoWordSense="	+  n_1+ n_2;
+						if(fvs != null)fvs.add(strfeat);
+						fe = model.m_mapTwoWordSense.get(strfeat);
 						if (fe != null)
 							dScore += bAverage ? fe.aveWeight : fe.weight;
 						
-						strfeat = "TagByFirstCharCat="+len_w_1 + t_1;
+						strfeat = "LastTagAndTwoWordSense="	+  n_1+ n_2 + t_0;
 						if(fvs != null)fvs.add(strfeat);
-						fe = model.m_mapTagByFirstCharCat.get(strfeat);
+						fe = model.m_mapLastTagAndTwoWordSense.get(strfeat);
 						if (fe != null)
-							dScore += bAverage ? fe.aveWeight : fe.weight;		
-					}
-					
-					if(model.m_wordFreq.containsKey(w_1)
-							&& model.m_wordFreq.get(w_1) > 5)
-					{					
-						strfeat = "SeparateWordCat="+len_w_1;
+							dScore += bAverage ? fe.aveWeight : fe.weight;
+						
+						strfeat = "LastWordAndTwoWordSense="	+ n_1+ n_2 + w_0;
 						if(fvs != null)fvs.add(strfeat);
-						fe = model.m_mapSeparateWordCat.get(strfeat);
+						fe = model.m_mapLastWordAndTwoWordSense.get(strfeat);
 						if (fe != null)
-							dScore += bAverage ? fe.aveWeight : fe.weight;	
-					}
-				}
-				*/
+							dScore += bAverage ? fe.aveWeight : fe.weight;
+						
+					}					
+				}*/
 				
-				//String charCat = this.hmChar.get(start_w_1);
-				//if(charCat !=null && charCat.indexOf(t_0+"|")>-1){
-					//strfeat = "SeparateCharCat="+ t_0;
-					//if(fvs != null)fvs.add(strfeat);
-					//fe = model.m_mapSeparateCharCat.get(strfeat);
-					//if (fe != null)
-						//dScore += bAverage ? fe.aveWeight : fe.weight;
-					//strfeat = "TagByFirstCharCat="+c_0 + t_0;
-					//if(fvs != null)fvs.add(strfeat);
-					//fe = model.m_mapTagByFirstCharCat.get(strfeat);
-					//if (fe != null)
-					//	dScore += bAverage ? fe.aveWeight : fe.weight;				
-				//}
-				
-				
-				//String wordCat = this.hmWord.get(w_1);
-				//if(wordCat !=null && wordCat.indexOf(t_1+"|")>-1){
-					//strfeat = "SeparateWordCat="+ t_1;
-					//if(fvs != null)fvs.add(strfeat);
-					//fe = model.m_mapSeparateWordCat.get(strfeat);
-					//if (fe != null)
-						//dScore += bAverage ? fe.aveWeight : fe.weight;
-					//strfeat = "TagByCurWordCat="+t_1+ t_0;
-					//if(fvs != null)fvs.add(strfeat);
-					//fe = model.m_mapTagByCurWordCat.get(strfeat);
-					//if (fe != null)
-					//	dScore += bAverage ? fe.aveWeight : fe.weight;							
-				//}
-				
-				//String charCat1 = this.hmChar.get(end_w_1);
-				//if(charCat1 !=null && charCat1.indexOf(t_1+"|")>-1){
-				//	strfeat = "TagByLastCharCat="+ start_w_1 + t_1;
-				//	if(fvs != null)fvs.add(strfeat);
-				//	fe = model.m_mapTagByLastCharCat.get(strfeat);
-				//	if (fe != null)
-				//		dScore += bAverage ? fe.aveWeight : fe.weight;						
-				//}
-				
-				for (int j = 0; j < len_w_1 - 1; ++j) {
-					strfeat = "TaggedCharByLastChar=" + w_1.substring(j, j + 1) + t_1 + end_w_1;
+				/*if(n_2!=null && n_2.length()>0){
+					strfeat = "LastTagAndPreWordSense="	+  n_2 + t_0;
 					if(fvs != null)fvs.add(strfeat);
-					fe = model.m_mapTaggedCharByLastChar.get(strfeat);
+					fe = model.m_mapLastTagAndPreWordSense.get(strfeat);
 					if (fe != null)
 						dScore += bAverage ? fe.aveWeight : fe.weight;
-				}
-				
+					
+					strfeat = "LastWordAndPreWordSense="	+  n_2 + w_0;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapLastWordAndPreWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ? fe.aveWeight : fe.weight;
+					
+					strfeat = "LastCharAndPreWordSense="	+  n_2 + c_0;
+					if(fvs != null)fvs.add(strfeat);
+					fe = model.m_mapLastCharAndPreWordSense.get(strfeat);
+					if (fe != null)
+						dScore += bAverage ?fe.aveWeight : fe.weight;
+				}*/
 				
 			}
 		}
@@ -1055,39 +1491,35 @@ public class BeamSearch {
 
 
 	/**
-	 * °Ñµ±Ç°×Ö·û×÷ÎªÒ»¸öĞÂ´Ê¼ÓÈëÒÑ±ê×¢ĞòÁĞÎ²²¿
+	 * æŠŠå½“å‰å­—ç¬¦ä½œä¸ºä¸€ä¸ªæ–°è¯åŠ å…¥å·²æ ‡æ³¨åºåˆ—å°¾éƒ¨
 	 * 
 	 * @param state
 	 * @param character
 	 * @param pos
 	 * @return
 	 */
-	private State Sep(State state, String curChar, int POSID, List<String> fvs, boolean bAverage) {
+	private State Sep(State state, String curChar, int POSID, List<String> fvs, boolean bAverage, String preWordSense) {
 		State newState = new State(state);
-		newState.Sep(curChar, POSID);
+		newState.Sep(curChar, POSID, preWordSense);
 		if(newState.score == this.MINVALUE)
 			 newState.score=0;
-		//if (bType == true) {
-		//	GetLocalFeaturesScore(newState);
-		//} else {
-		//	GetLocalFeaturesScoreForTest(newState);
-		//}
+
 		GetLocalFeaturesScoreByZMS(newState, fvs, bAverage);
 		return newState;
 	}
 	
 	
 	/**
-	 * °Ñµ±Ç°×Ö·û×÷ÎªÒ»¸öĞÂ´Ê¼ÓÈëÒÑ±ê×¢ĞòÁĞÎ²²¿
+	 * æŠŠå½“å‰å­—ç¬¦ä½œä¸ºä¸€ä¸ªæ–°è¯åŠ å…¥å·²æ ‡æ³¨åºåˆ—å°¾éƒ¨
 	 * 
 	 * @param state
 	 * @param character
 	 * @param pos
 	 * @return
 	 */
-	private State Finish(State state, List<String> fvs, boolean bAverage) {
+	private State Finish(State state, List<String> fvs, boolean bAverage,String preWordSense) {
 		State newState = new State(state);
-		newState.Finish();
+		newState.Finish(preWordSense);
 		if(newState.score == this.MINVALUE)
 			 newState.score=0;
 		GetLocalFeaturesScoreByZMS(newState, fvs, bAverage);
@@ -1095,7 +1527,7 @@ public class BeamSearch {
 	}
 
 	/**
-	 * append action: °Ñµ±Ç°×Ö·ûÖ±½Ó¼ÓÈëÒÑ±ê×¢×îºóÒ»¸ö´ÊÎ²£¬´ÊĞÔÓë×îºó´ÊÏàÍ¬
+	 * append action: æŠŠå½“å‰å­—ç¬¦ç›´æ¥åŠ å…¥å·²æ ‡æ³¨æœ€åä¸€ä¸ªè¯å°¾ï¼Œè¯æ€§ä¸æœ€åè¯ç›¸åŒ
 	 * 
 	 * @param state
 	 * @param character
@@ -1108,17 +1540,12 @@ public class BeamSearch {
 		newState.Add(curChar);
 		if(newState.score == this.MINVALUE)
 			 newState.score=0;
-//		if (bType == true) {
-//			GetLocalFeaturesScore(newState);
-//		} else {
-//			GetLocalFeaturesScoreForTest(newState);
-//		}
 		GetLocalFeaturesScoreByZMS(newState, fvs, bAverage);
 		return newState;
 	}
 
 	/**
-	 * Êä³öµ½ÎÄ¼ş
+	 * è¾“å‡ºåˆ°æ–‡ä»¶
 	 * 
 	 * @param arrlist
 	 */
@@ -1126,7 +1553,7 @@ public class BeamSearch {
 		FileWriter fw;
 		try {
 			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw); // ½«»º³å¶ÔÎÄ¼şµÄÊä³ö
+			BufferedWriter bw = new BufferedWriter(fw); // å°†ç¼“å†²å¯¹æ–‡ä»¶çš„è¾“å‡º
 			for (int i = 0; i < arrlist.size(); i++) {
 				bw.write(arrlist.get(i) + "\r\n");
 			}
@@ -1135,25 +1562,18 @@ public class BeamSearch {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}// ´´½¨FileWriter¶ÔÏó£¬ÓÃÀ´Ğ´Èë×Ö·ûÁ÷
+		}// åˆ›å»ºFileWriterå¯¹è±¡ï¼Œç”¨æ¥å†™å…¥å­—ç¬¦æµ
 	}
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		/*
-		 * String curGoldsequence="abc_AC"; int lastIndex=
-		 * curGoldsequence.lastIndexOf("_"); curGoldsequence =
-		 * curGoldsequence.substring
-		 * (0,lastIndex)+"AA"+curGoldsequence.substring(
-		 * lastIndex,curGoldsequence.length());
-		 * System.out.println(curGoldsequence);
-		 */
-		// TODO Auto-generated method stub
-		String s = "ÎÒÊÇÖĞ¹úÈË!";
-		String g = "ÎÒÊÇ_VE ÖĞ¹úÈË_NN !_PU";
-		BeamSearch bs = new BeamSearch();
+		
+		BeamSearchForDSP bs = new BeamSearchForDSP();
+		
+		
+		
 		// bs.sentence=s;
 		// bs.goldTagSquence = g;
 		String r = "";
@@ -1170,7 +1590,7 @@ public class BeamSearch {
 		//System.out.println(r);
 	}
 	
-	public double[] updateParameters(List<Integer> predActions)
+	public double[] updateParameters(List<Integer> predActions, State bestState)
 	{
 		State tmpState = new State();
 		State goldState = new State();
@@ -1182,16 +1602,35 @@ public class BeamSearch {
 		for(; p < predActions.size(); p++)
 		{
 			String curSChar = "";
+			String preTmpWordSense = "";
+			String preGoldWordSense = "";
 			if(p < this.CurSentence.length()) curSChar = String.valueOf(CurSentence.charAt(p));
 
 			int predAction = predActions.get(p);
 			int goldAction = goldActions.get(p);
+			
+			if(tmpState.size>=1){
+				preTmpWordSense = predAction==2000? this.GetPreNormal(bestState, p, true):this.GetPreNormal(bestState, p, false);
+				preTmpWordSense = preTmpWordSense==null?"": preTmpWordSense;
+			}
+			if(goldState.size>=1) {
+				preGoldWordSense = goldAction==2000?this.GetPreNormal(this.goldSentenceState, p, true): this.GetPreNormal(this.goldSentenceState, p, false);
+				preGoldWordSense = preGoldWordSense==null?"": preGoldWordSense;
+			}
+			
 			if( predAction == goldAction)
 			{
 				if(predAction < 1000 && predAction >= 0)
 				{
-					tmpState.Sep(curSChar, predAction);
-					goldState.Sep(curSChar, predAction);
+					String curTmpWordSense = this.GetCurNormal(bestState, p);//è¿˜è¦è¯ä¹‰ç›¸åŒ
+					curTmpWordSense = curTmpWordSense==null?"": curTmpWordSense;
+					String curGoldWordSense = this.GetCurNormal(this.goldSentenceState, p);
+					curGoldWordSense = curGoldWordSense==null?"": curGoldWordSense;
+					if(curTmpWordSense.equals(curGoldWordSense)==false)
+						break;				
+					
+					tmpState.Sep(curSChar, predAction, preTmpWordSense);
+					goldState.Sep(curSChar, predAction, preGoldWordSense);
 				}						
 				else if(predAction == 1000)
 				{
@@ -1201,14 +1640,14 @@ public class BeamSearch {
 				else if(predAction == 2000)
 				{
 					System.out.println("Impossible.....");
-					tmpState.Finish();
-					goldState.Finish();
+					tmpState.Finish(preTmpWordSense);
+					goldState.Finish(preGoldWordSense);
 				}
 				else
 				{
 					System.out.println("error gold action: " + Integer.toString(predAction));
 				}
-				
+				//System.out.println("aa"+ tmpState.toString());
 				currentScore = GetLocalFeaturesScoreByZMS(tmpState, null, false);
 				scores[0] += currentScore;
 				scores[1] += currentScore;
@@ -1227,13 +1666,24 @@ public class BeamSearch {
 		for(; p < predActions.size(); p++)
 		{
 			String curSChar = "";
-			if(p < this.CurSentence.length()) curSChar = String.valueOf(CurSentence.charAt(p));
+			String preTmpWordSense = "";
+			String preGoldWordSense = "";
+			if(p < this.CurSentence.length()) curSChar = String.valueOf(CurSentence.charAt(p));		
+			
 			int predAction = predActions.get(p);
 			int goldAction = goldActions.get(p);
-			
+			if(tmpState.size>=1){
+				preTmpWordSense = (predAction==2000)? this.GetPreNormal(bestState, p, true):this.GetPreNormal(bestState, p, false);
+				preTmpWordSense = preTmpWordSense==null?"": preTmpWordSense;
+			}
+			if(goldState.size>=1){
+				preGoldWordSense = (goldAction==2000)? this.GetPreNormal(this.goldSentenceState, p, true): this.GetPreNormal(this.goldSentenceState, p, false);
+				preGoldWordSense = preGoldWordSense==null?"": preGoldWordSense;
+			}
+						
 			if(predAction < 1000 && predAction >= 0)
 			{
-				tmpState.Sep(curSChar, predAction);
+				tmpState.Sep(curSChar, predAction, preTmpWordSense);
 			}						
 			else if(predAction == 1000)
 			{
@@ -1241,7 +1691,7 @@ public class BeamSearch {
 			}
 			else if(predAction == 2000)
 			{
-				tmpState.Finish();
+				tmpState.Finish(preTmpWordSense);
 			}
 			else
 			{
@@ -1255,7 +1705,7 @@ public class BeamSearch {
 			
 			if(goldAction < 1000 && goldAction >= 0)
 			{
-				goldState.Sep(curSChar, goldAction);
+				goldState.Sep(curSChar, goldAction, preGoldWordSense);
 			}						
 			else if(goldAction == 1000)
 			{
@@ -1263,13 +1713,13 @@ public class BeamSearch {
 			}
 			else if(goldAction == 2000)
 			{
-				goldState.Finish();
+				goldState.Finish(preGoldWordSense);
 			}
 			else
 			{
 				System.out.println("error gold action: " + Integer.toString(goldAction));
 			}
-			
+			//System.out.println("bb "+ goldState.toString());
 			currentScore = GetLocalFeaturesScoreByZMS(goldState, goldFeatures, false);
 			scores[1] += currentScore;
 			
@@ -1281,7 +1731,7 @@ public class BeamSearch {
 		return scores;
 	}
 	
-	
+	//tag sample:æˆ‘_r è¿_u çƒ§_v å¼€æ°´_n ä¹Ÿ_d æ²¡_v æŠŠæ¡|001641_n ã€‚_w
 	public static String UnTagSentence(String tagSequence)
 	{
 		String sentence = "";
@@ -1289,22 +1739,50 @@ public class BeamSearch {
 		while ( token.hasMoreElements() ){
 			String tempStr = token.nextToken();
 			int index = tempStr.indexOf("_");
-			String theWord = tempStr.substring(0, index);
+			//System.out.println("untag "+tempStr);
+			String theWordsense = tempStr.substring(0, index);
+			int wordIndex =theWordsense.indexOf("|");
+			String theWord ="";
+			if(wordIndex<0){
+				theWord=theWordsense;
+			}else{
+				theWord = theWordsense.substring(0,wordIndex);
+			}
+			
 			//String thePOS = tempStr.substring(index+1, tempStr.length());
 			sentence = sentence + theWord;			
 		}
     	return sentence;
 	}
 	
-    public static List<Integer> getGoldActions(String tagSequence)
+	/**
+	 * action:  1000: è¡¨ç¤ºapp, 2000ï¼Œfinal
+	 * @param tagSequence
+	 * @return
+	 */
+    public  List<Integer> getGoldActions(String tagSequence)
     {
     	List<Integer> goldActions = new ArrayList<Integer>();
-    	
+    	this.goldSentenceState = new  State();
     	StringTokenizer token=new StringTokenizer(tagSequence," "); 
+    	int wordNumber=0;
 		while ( token.hasMoreElements() ){
 			String tempStr = token.nextToken();
 			int index = tempStr.indexOf("_");
-			String theWord = tempStr.substring(0, index);
+			String theWordSense = tempStr.substring(0, index);
+			int wordIndex = theWordSense.indexOf("|");	
+			String theWord ="";
+			String theSense = "";
+			if(wordIndex<0){
+				theWord = theWordSense;
+				//goldSenses.add("");
+				theSense=theWord;
+			}else{
+				theWord = theWordSense.substring(0,wordIndex);
+				//goldSenses.add(theWordSense.substring(wordIndex+1, theWordSense.length()));
+				theSense = theWordSense.substring(wordIndex+1, theWordSense.length());
+			}
+			
 			String thePOS = tempStr.substring(index+1, tempStr.length());
 			int thePOSID = -1;
 			for(int idx = 0; idx < State.arrPOS.length; idx++)
@@ -1315,14 +1793,21 @@ public class BeamSearch {
 					break;
 				}
 			}
-			goldActions.add(thePOSID);
+			goldActions.add(thePOSID);			
 			for(int idx = 1; idx < theWord.length(); idx++)
 			{
-				goldActions.add(1000);
+				goldActions.add(1000);				
+				
 			}
+			goldSentenceState.arrWord[wordNumber]=theWord;
+			goldSentenceState.arrNormal[wordNumber]=theSense;
+			goldSentenceState.arrTag[wordNumber]=thePOS;
+			wordNumber++;
 			
 		}
-		goldActions.add(2000);
+		goldSentenceState.size = wordNumber;
+		
+		goldActions.add(2000);		
     	return goldActions;
     }
     
@@ -1342,25 +1827,217 @@ public class BeamSearch {
     	{
     		String theLastWord = state.arrWord[length-1];
     		String theLastPos = state.arrTag[length-1];
+    		String theLastSense = state.arrNormal[length-1];
     		
-        	if(model.m_wordFreq.containsKey(theLastWord) &&
-        			model.m_wordFreq.get(theLastWord) > 10
-        			&& !model.m_wordPOSSets.get(theLastWord).containsKey(theLastPos))
+        	if((model.m_wordFreq.containsKey(theLastWord) &&	model.m_wordFreq.get(theLastWord) > 10
+        			&& !model.m_wordPOSSets.get(theLastWord).containsKey(theLastPos)) ||
+        			(model.m_wordFreq.containsKey(theLastSense) &&	model.m_wordFreq.get(theLastSense) > 10
+                			&& !model.m_wordPOSSets.get(theLastSense).containsKey(theLastPos)))
         	{
         		return false;
         	}
         	
         	if(model.m_posCloseSet.containsKey(theLastPos)
-        			&& !model.m_posCloseSet.get(theLastPos).contains(theLastWord))
+        			&& (!model.m_posCloseSet.get(theLastPos).contains(theLastWord) && !model.m_posCloseSet.get(theLastPos).contains(theLastSense) ))
         	{
         		return false;
         	}
+        	
+        	if(theLastSense !=null && theLastSense.length()>0){
+	        	if((model.m_wordFreq.containsKey(theLastSense) &&	model.m_wordFreq.get(theLastSense) > 10)){
+	        		if(model.m_wordPOSSets.containsKey(theLastSense) && !model.m_wordPOSSets.get(theLastSense).containsKey(theLastPos))
+		    	    {
+		        		return false;
+		    	    }
+	        	}
+	    	
+	    	   if(model.m_posCloseSet.containsKey(theLastPos)
+	    			 && !model.m_posCloseSet.get(theLastPos).contains(theLastSense) )
+	    	   {
+	    		   return false;
+	    	   }
+        	}
     	}
-    	
-    	
-    	
-    	
-    	
     	return true;
     }
+    
+    public ArrayList<String> GetNormalSetByWord(String word){
+    	ArrayList<String> senseSet = new ArrayList<String>();
+    	senseSet.add(word);
+    	String strTemp = this.hmWordSenseSet.get(word);//æ‰“ A|B|C  ABCè¡¨ç¤ºè¯ä¹‰æˆ–å¯æ›¿æ¢å•è¯ 
+    	if(strTemp !=null && strTemp.length()>0) {
+	    	StringTokenizer token=new StringTokenizer(strTemp,"\\|");  
+	    	while ( token.hasMoreElements()){
+	    		senseSet.add(token.nextToken());    		
+	    	}
+    	}
+    	
+    	return senseSet;    	
+    }  
+    
+   public void initialSense(){
+	   this.hmWordSenseSet = new HashMap<String,String>();
+		if(this.sense_file==null || this.sense_file.length()==0)
+			return;
+	   File file = new File(this.sense_file);
+		BufferedInputStream fis;
+		try {
+			fis = new BufferedInputStream(new FileInputStream(file));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					fis, "UTF8"));// ç”¨50Mçš„ç¼“å†²è¯»å–æ–‡æœ¬æ–‡ä»¶
+			String line = "";
+					
+			while ((line = reader.readLine()) != null) {				
+				if (line.trim().length() > 0) {	
+					line = line.trim();
+					int index = line.indexOf(" ");
+					String word=line.substring(0,index);
+					String senses= line.substring(index+1, line.length());
+					hmWordSenseSet.put(word, senses);
+				}
+			}
+			reader.close();
+			
+			fis.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+   }
+   //initial language model
+   public void initialLM(){
+	   hsngramChar = new HashMap<String, Integer>();
+	   hsngramWord = new HashMap<String, Integer>();
+	   if(this.lmChar_file!=null && this.lmChar_file.length()>0)
+	   {
+		   File file = new File(this.lmChar_file);
+			BufferedInputStream fis;
+			try {
+				fis = new BufferedInputStream(new FileInputStream(file));
+				BufferedReader reader = new BufferedReader(new InputStreamReader(
+						fis, "UTF8"));// ç”¨50Mçš„ç¼“å†²è¯»å–æ–‡æœ¬æ–‡ä»¶
+				String line = "";
+						
+				while ((line = reader.readLine()) != null) {				
+					if (line.trim().length() > 0) {	
+						line = line.trim();
+						StringTokenizer token=new StringTokenizer(line,"\t"); 
+						int count = token.countTokens();
+						if(count==4){
+						    String word = token.nextToken();
+							token.nextToken();
+							int iType = Integer.parseInt(token.nextToken());						
+							hsngramChar.put(word, iType);
+							
+						}
+						
+					}
+				}
+				reader.close();			
+				fis.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	   }
+	   
+		if(this.lmWord_file !=null && this.lmWord_file.length()>0)
+		 {
+		   File file1 = new File(this.lmWord_file);
+			BufferedInputStream fis1;
+			try {
+				fis1 = new BufferedInputStream(new FileInputStream(file1));
+				BufferedReader reader = new BufferedReader(new InputStreamReader(
+						fis1, "UTF8"));// ç”¨50Mçš„ç¼“å†²è¯»å–æ–‡æœ¬æ–‡ä»¶
+				String line = "";
+						
+				while ((line = reader.readLine()) != null) {				
+					if (line.trim().length() > 0) {	
+						line = line.trim();
+						StringTokenizer token=new StringTokenizer(line,"\t"); 
+						int count = token.countTokens();
+						if(count==4){
+						    String word = token.nextToken();
+							token.nextToken();
+							int iType = Integer.parseInt(token.nextToken());						
+							hsngramWord.put(word, iType);
+							
+						}
+						
+					}
+				}
+				reader.close();			
+				fis1.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		 }
+	   
+   }
+   
+   
+   public String GetPreNormal(State state, int index, boolean  isFinish){
+	   String strRet="";
+	   if(isFinish == true){
+		  return state.arrNormal[state.size-1];
+	   }
+	   int k=-1;
+	   for(int i=0;i<state.size;i++ ){
+		   k+=state.arrWord[i].length();
+		   if(k>=index) {
+			   if(i>0)  strRet = state.arrNormal[i-1];
+			   break;
+		   }
+	   }
+	   
+	   return strRet;
+   }
+   
+   public String GetCurNormal(State state, int index){
+	   String strRet="";
+	   int k=-1;
+	   for(int i=0;i<state.size;i++ ){
+		   k+=state.arrWord[i].length();
+		   if(k>=index) {
+			   strRet = state.arrNormal[i];
+			   break;
+		   }
+	   }
+	   
+	   return strRet;
+   }
+   
+   //æ¯”è¾ƒæœ€åä¸€ä¸ªè¯æ˜¯æ ‡æ³¨æ˜¯å¦ç›¸ç­‰ã€‚
+   public boolean equalNormal(State trainState, State goldState, int k){
+	   boolean bRet=false;
+	   if(trainState.arrNormal[trainState.size-k]==null|| trainState.arrNormal[trainState.size-k].length()<1 ){
+		   if(goldState.arrNormal[trainState.size-k]==null || goldState.arrNormal[trainState.size-k].length()<1){
+			   bRet = true;
+		   }else{
+			   bRet = false;
+		   }		   
+	   }else{
+		   if(goldState.arrNormal[trainState.size-k]==null || goldState.arrNormal[trainState.size-k].length()<1){
+			   bRet = false;
+		   }else{
+			   if(trainState.arrNormal[trainState.size-k].equals(this.goldSentenceState.arrNormal[trainState.size-k])){
+				   bRet = true;
+			   }else{
+				   bRet = false; 
+			   }			   
+		   }
+	   }
+	   return bRet;
+	  
+   }
+  //å­—ç¬¦é—´åŠ ä¸€ä¸ªç©ºæ ¼ 
+  public String CovertAddSpace(String Str){
+	  String sRet = "";
+	  for(int i=0;i<Str.length();i++){
+		  sRet += Str.substring(i,i+1)+" ";
+	  }
+	  return sRet.trim();
+  }
+    
 }
