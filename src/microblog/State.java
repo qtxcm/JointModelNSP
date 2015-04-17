@@ -7,12 +7,13 @@ import java.util.StringTokenizer;
 public class State {
 	public int lastAction=0;  // 0-999:"S"  or 1000:"A" or -1:"invalid" or 2000:"finish"
 	public List<Integer> hisActions = new ArrayList<Integer>();
-	public String[] arrWord; //µ¥´ÊĞòÁĞ
-	public String[] arrTag; //±ê×¢ĞòÁĞ
+	public String[] arrWord; //å•è¯åºåˆ—
+	public String[] arrTag; //æ ‡æ³¨åºåˆ—
+	public String[] arrNormal; //å¯¹åº”å•è¯çš„è¯ä¹‰æˆ–æ ‡å‡†åŒ–å•è¯
 	
-	public static  int MAXNUM=400;//×î´ó³¤¶È
+	public static  int MAXNUM=1000;//æœ€å¤§é•¿åº¦
 	public int size=0;
-    public double score=0;    //·ÖÊı
+    public double score=0;    //åˆ†æ•°
     
     public boolean  bIsGold = true;
     public boolean bStart = true;
@@ -22,12 +23,16 @@ public class State {
 		"LC", "PN", "DT", "CD", "OD", "M", "AD", "P", "CC", "CS", "DEC",
 		"DEG", "DER", "DEV", "AS", "SP", "ETC", "MSP", "IJ", "ON", "LB",
 		"SB", "BA", "JJ", "FW", "PU" };
+	//public static String[] arrPOS = {"Ag","a","ad","an","b","c","Dg","d","e","f",
+	//	"g","h","i","j","k","l","m","Ng","n","nr","ns","nt","nz","o","p","q","r",
+	//	"s","Tg","t","u","Vg","v","vd","vn","w","x","y","z"};
 	
    
     public State(){
     	this.lastAction=-1;
     	this.arrWord = new String[MAXNUM]; 
     	this.arrTag = new String[MAXNUM];
+    	this.arrNormal = new String[MAXNUM];
     	this.score=0;	
     	this.size=0;
     	this.bIsGold=true;
@@ -40,12 +45,14 @@ public class State {
     	this.lastAction=newState.lastAction;
     	this.arrWord = new String[MAXNUM]; 
     	this.arrTag = new String[MAXNUM];
+    	this.arrNormal = new String[MAXNUM];
     	this.size=newState.size; 
     	this.score=newState.score; 
     	this.bIsGold = newState.bIsGold;
     	for(int i=0;i<size;i++){
     		this.arrWord[i]=newState.arrWord[i];
     		this.arrTag[i]=newState.arrTag[i];
+    		this.arrNormal[i]=newState.arrNormal[i];
     	}
     	hisActions = new ArrayList<Integer>();
     	for(int act : newState.hisActions)
@@ -67,19 +74,25 @@ public class State {
     	//arrFeature=new ArrayList<String>();
     }  
 */    
-    public void Sep(String curChar, int POSID){
+    public void Sep(String curChar, int POSID, String preWordSense){
     	String POS = arrPOS[POSID];
     	arrWord[size]= curChar;
-    	arrTag[size]= POS;    	
+    	arrTag[size]= POS;   
+    	if(preWordSense !=null && preWordSense.length()>0 && size>=1){
+    		arrNormal[size-1] = preWordSense;
+    	}
     	this.lastAction = POSID;
     	this.hisActions.add(lastAction);
     	size++;
     	bStart = false;
     }
     
-    public void Finish(){   	
+    public void Finish(String preWordSense){   	
     	this.lastAction = 2000;
     	this.hisActions.add(lastAction);
+    	if(preWordSense !=null && size>=1){
+    		arrNormal[size-1] = preWordSense;
+    	}
     	bStart = false;
     }
     
@@ -91,15 +104,21 @@ public class State {
 	    	bStart = false;
     	}
     	else {
-    		System.out.println("³õÊ¼²»ÄÜ×öºÏ²¢²Ù×÷");
+    		System.out.println("åˆå§‹ä¸èƒ½åšåˆå¹¶æ“ä½œ");
     	}    	
     }
  
     
     public String toString(){
     	String str="";
-		for(int i=0;i<size;i++)
-			str+=arrWord[i] +"_" + arrTag[i] + " ";
+		for(int i=0;i<size;i++){
+			if(arrNormal[i] != null && arrNormal[i].length()>0){
+				str+=arrWord[i] + "|"+arrNormal[i] +"_" + arrTag[i] + " ";
+			}else{
+				str+=arrWord[i] +"_" + arrTag[i] + " ";
+			}
+			
+		}
 		return str.trim();		
     } 
     
@@ -111,15 +130,4 @@ public class State {
 		}
 		return str.trim();		
     } 
-    
-    /**
-	 * ÒÑ±ê×¢ĞòÁĞ×ª»¯ÎªState¶ÔÏó
-	 * @param tagSequence
-	 * @return
-	 */
-
-
-
-   
-    
 }
