@@ -12,12 +12,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import microblog.Feature.featureName;
@@ -31,78 +33,170 @@ public class Model {
 	
 	
 	// feature templates abstd::cout characters
-	public HashMap<String, Feature> m_mapCharUnigram=new HashMap<String, Feature>();   //C0
-	public HashMap<String, Feature> m_mapCharBigram=new HashMap<String, Feature>();    //C-1C0
-	public HashMap<String, Feature> m_mapCharTrigram=new HashMap<String, Feature>();   //C-2C-1C0
+	public HashMap<String, Feature> m_mapOrgCharUnigram=new HashMap<String, Feature>();   //C0
+	public HashMap<String, Feature> m_mapOrgCharBigram=new HashMap<String, Feature>();    //C-1C0
+	public HashMap<String, Feature> m_mapOrgCharTrigram=new HashMap<String, Feature>();   //C-2C-1C0
 	
 	// feature templates abstd::cout words	  
-	public HashMap<String, Feature> m_mapSeenWords=new HashMap<String, Feature>();     //w_1
-	public HashMap<String, Feature> m_mapLastWordByWord=new HashMap<String, Feature>(); //w-2w-1
-	public HashMap<String, Feature> m_mapCurrentWordLastChar=new HashMap<String, Feature>();//w_1_end_w_2
-	public HashMap<String, Feature> m_mapLastWordFirstChar=new HashMap<String, Feature>();//w_1_c_0
-	public HashMap<String, Feature> m_mapFirstCharLastWordByWord=new HashMap<String, Feature>();//start_w_1_C_0
-	public HashMap<String, Feature> m_mapLastWordByLastChar=new HashMap<String, Feature>();//w_1_c_0_t_1
-	public HashMap<String, Feature> m_mapSeparateChars=new HashMap<String, Feature>();//end_w_1_c_0
-	public HashMap<String, Feature> m_mapConsecutiveChars=new HashMap<String, Feature>();//char_bigram  for app
-	public HashMap<String, Feature> m_mapFirstAndLastChars=new HashMap<String, Feature>(); //start_w_1end_w_1
-	public HashMap<String, Feature> m_mapOneCharWord=new HashMap<String, Feature>();//w-1 if(len_w-1==1)
-	public HashMap<String, Feature> m_mapLengthByFirstChar = new HashMap<String, Feature>();//start_w_1_len_w_1
-	public HashMap<String, Feature> m_mapLengthByLastChar = new HashMap<String, Feature>();//end_w_1_len_w_1
-	public HashMap<String, Feature> m_mapLengthByLastWord = new HashMap<String, Feature>();//w_2_len_w_1
-	public HashMap<String, Feature> m_mapLastLengthByWord = new HashMap<String, Feature>();//w_1_len_w_2
+	public HashMap<String, Feature> m_mapOrgSeenWords=new HashMap<String, Feature>();     //w_1
+	public HashMap<String, Feature> m_mapOrgLastWordByWord=new HashMap<String, Feature>(); //w-2w-1
+	public HashMap<String, Feature> m_mapOrgCurrentWordLastChar=new HashMap<String, Feature>();//w_1_end_w_2
+	public HashMap<String, Feature> m_mapOrgLastWordFirstChar=new HashMap<String, Feature>();//w_1_c_0
+	public HashMap<String, Feature> m_mapOrgFirstCharLastWordByWord=new HashMap<String, Feature>();//start_w_1_C_0
+	public HashMap<String, Feature> m_mapOrgLastWordByLastChar=new HashMap<String, Feature>();//w_1_c_0_t_1
+	public HashMap<String, Feature> m_mapOrgSeparateChars=new HashMap<String, Feature>();//end_w_1_c_0
+	public HashMap<String, Feature> m_mapOrgConsecutiveChars=new HashMap<String, Feature>();//char_bigram  for app
+	public HashMap<String, Feature> m_mapOrgFirstAndLastChars=new HashMap<String, Feature>(); //start_w_1end_w_1
+	public HashMap<String, Feature> m_mapOrgOneCharWord=new HashMap<String, Feature>();//w-1 if(len_w-1==1)
+	public HashMap<String, Feature> m_mapOrgLengthByFirstChar = new HashMap<String, Feature>();//start_w_1_len_w_1
+	public HashMap<String, Feature> m_mapOrgLengthByLastChar = new HashMap<String, Feature>();//end_w_1_len_w_1
+	public HashMap<String, Feature> m_mapOrgLengthByLastWord = new HashMap<String, Feature>();//w_2_len_w_1
+	public HashMap<String, Feature> m_mapOrgLastLengthByWord = new HashMap<String, Feature>();//w_1_len_w_2
 	
 	// feature templates tag	
-	public HashMap<String, Feature> m_mapCurrentTag=new HashMap<String, Feature>(); //w_1_t_1
-	public HashMap<String, Feature> m_mapLastTagByTag=new HashMap<String, Feature>(); //t-1t0
-	public HashMap<String, Feature> m_mapLastTwoTagsByTag=new HashMap<String, Feature>(); //t-2t-1t0
-	public HashMap<String, Feature> m_mapTagByLastWord=new HashMap<String, Feature>(); //w-1t0
-	public HashMap<String, Feature> m_mapLastTagByWord=new HashMap<String, Feature>(); //w-1t-2
-	public HashMap<String, Feature> m_mapTagByFirstChar=new HashMap<String, Feature>();//first_char_0, tag_0
-	public HashMap<String, Feature> m_mapTagByLastChar=new HashMap<String, Feature>();//end_w_1_t_1
-	public HashMap<String, Feature> m_mapTagByChar=new HashMap<String, Feature>();//(first_char_0, tag_0  for two action
-	public HashMap<String, Feature> m_mapTagOfOneCharWord=new HashMap<String, Feature>();//end_w_2_w_1_c_0 if len_w_1=1 
-	public HashMap<String, Feature> m_mapRepeatedCharByTag=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapTagByWordAndPrevChar=new HashMap<String, Feature>();//w_1_end_w_2_t_1
-	public HashMap<String, Feature> m_mapTagByWordAndNextChar=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapTaggedCharByFirstChar=new HashMap<String, Feature>();// first_char char_unigram, tag_0 for app
-	public HashMap<String, Feature> m_mapTaggedCharByLastChar=new HashMap<String, Feature>();//w_1µƒchar”Îlast_char
+	public HashMap<String, Feature> m_mapOrgCurrentTag=new HashMap<String, Feature>(); //w_1_t_1
+	public HashMap<String, Feature> m_mapOrgLastTagByTag=new HashMap<String, Feature>(); //t-1t0
+	public HashMap<String, Feature> m_mapOrgLastTwoTagsByTag=new HashMap<String, Feature>(); //t-2t-1t0
+	public HashMap<String, Feature> m_mapOrgTagByLastWord=new HashMap<String, Feature>(); //w-1t0
+	public HashMap<String, Feature> m_mapOrgLastTagByWord=new HashMap<String, Feature>(); //w-1t-2
+	public HashMap<String, Feature> m_mapOrgTagByFirstChar=new HashMap<String, Feature>();//first_char_0, tag_0
+	public HashMap<String, Feature> m_mapOrgTagByLastChar=new HashMap<String, Feature>();//end_w_1_t_1
+	public HashMap<String, Feature> m_mapOrgTagByChar=new HashMap<String, Feature>();//(first_char_0, tag_0  for two action
+	public HashMap<String, Feature> m_mapOrgTagOfOneCharWord=new HashMap<String, Feature>();//end_w_2_w_1_c_0 if len_w_1=1 
+	public HashMap<String, Feature> m_mapOrgRepeatedCharByTag=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgTagByWordAndPrevChar=new HashMap<String, Feature>();//w_1_end_w_2_t_1
+	public HashMap<String, Feature> m_mapOrgTagByWordAndNextChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgTaggedCharByFirstChar=new HashMap<String, Feature>();// first_char char_unigram, tag_0 for app
+	public HashMap<String, Feature> m_mapOrgTaggedCharByLastChar=new HashMap<String, Feature>();//w_1ÁöÑchar‰∏élast_char
 	
 	// extra features
-	public HashMap<String, Feature> m_mapTaggedSeparateChars=new HashMap<String, Feature>();//last_char_1, tag_1, first_char_0, tag_0
-	public HashMap<String, Feature> m_mapTaggedConsecutiveChars=new HashMap<String, Feature>();//char_bigram, tag_0 for app
+	public HashMap<String, Feature> m_mapOrgTaggedSeparateChars=new HashMap<String, Feature>();//last_char_1, tag_1, first_char_0, tag_0
+	public HashMap<String, Feature> m_mapOrgTaggedConsecutiveChars=new HashMap<String, Feature>();//char_bigram, tag_0 for app
 	
-	public HashMap<String, Feature> m_mapWordTagTag=new HashMap<String, Feature>();//word_2, tag_0_tag_1
-	public HashMap<String, Feature> m_mapTagWordTag=new HashMap<String, Feature>();//word_1, tag_0_tag_2
-	public HashMap<String, Feature> m_mapFirstCharBy2Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1
-	public HashMap<String, Feature> m_mapFirstCharBy3Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1_tag_2
-	public HashMap<String, Feature> m_mapFirstCharAndChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgWordTagTag=new HashMap<String, Feature>();//word_2, tag_0_tag_1
+	public HashMap<String, Feature> m_mapOrgTagWordTag=new HashMap<String, Feature>();//word_1, tag_0_tag_2
+	public HashMap<String, Feature> m_mapOrgFirstCharBy2Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1
+	public HashMap<String, Feature> m_mapOrgFirstCharBy3Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1_tag_2
+	public HashMap<String, Feature> m_mapOrgFirstCharAndChar=new HashMap<String, Feature>();
 	
-	public HashMap<String, Feature> m_mapSepCharAndNextChar=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapAppCharAndNextChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgSepCharAndNextChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgAppCharAndNextChar=new HashMap<String, Feature>();
 	
-	public HashMap<String, Feature> m_mapPartialWord=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapPartialLengthByFirstChar=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapLengthByTagAndFirstChar=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapLengthByTagAndLastChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgPartialWord=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgPartialLengthByFirstChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgLengthByTagAndFirstChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgLengthByTagAndLastChar=new HashMap<String, Feature>();
 	
-	public HashMap<String, Feature> m_mapTag0Tag1Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
-	public HashMap<String, Feature> m_mapTag1Tag2Size1=new HashMap<String, Feature>();//t_2_t_1_len(w_1)
-	public HashMap<String, Feature> m_mapTag0Tag1Tag2Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+	public HashMap<String, Feature> m_mapOrgTag0Tag1Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+	public HashMap<String, Feature> m_mapOrgTag1Tag2Size1=new HashMap<String, Feature>();//t_2_t_1_len(w_1)
+	public HashMap<String, Feature> m_mapOrgTag0Tag1Tag2Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
 	
 	 // feature templates knowledge
-	public HashMap<String, Feature> m_mapTagByFirstCharCat=new HashMap<String, Feature>();//first_char_cat_0, tag_0
-	public HashMap<String, Feature> m_mapTagByLastCharCat=new HashMap<String, Feature>();//last_char_cat_1, tag_1
-	public HashMap<String, Feature> m_mapSeparateCharCat=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapConsecutiveCharCat=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapConsecutiveCharTagCat=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapSeparateWordCat=new HashMap<String, Feature>();
-	public HashMap<String, Feature> m_mapTagByCurWordCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgTagByFirstCharCat=new HashMap<String, Feature>();//first_char_cat_0, tag_0
+	public HashMap<String, Feature> m_mapOrgTagByLastCharCat=new HashMap<String, Feature>();//last_char_cat_1, tag_1
+	public HashMap<String, Feature> m_mapOrgSeparateCharCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgConsecutiveCharCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgConsecutiveCharTagCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgSeparateWordCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapOrgTagByCurWordCat=new HashMap<String, Feature>();
 	
 	// statistical information
 	public HashMap<String, Integer> m_mapWordFrequency = new HashMap<String, Integer>();
 	public HashMap<String, String> m_mapTagDictionary = new HashMap<String, String>();
 	public HashMap<String, String> m_mapCharTagDictionary = new HashMap<String, String>();
 	public HashMap<String, String> m_mapCanStart = new HashMap<String, String>();
+	//normalize features
+	public HashMap<String, Feature> m_mapNorCharUnigram=new HashMap<String, Feature>();   //C0
+	public HashMap<String, Feature> m_mapNorCharBigram=new HashMap<String, Feature>();    //C-1C0
+	public HashMap<String, Feature> m_mapNorCharTrigram=new HashMap<String, Feature>();   //C-2C-1C0
+	
+	// feature templates abstd::cout words	  
+	public HashMap<String, Feature> m_mapNorSeenWords=new HashMap<String, Feature>();     //w_1
+	public HashMap<String, Feature> m_mapNorLastWordByWord=new HashMap<String, Feature>(); //w-2w-1
+	public HashMap<String, Feature> m_mapNorCurrentWordLastChar=new HashMap<String, Feature>();//w_1_end_w_2
+	public HashMap<String, Feature> m_mapNorLastWordFirstChar=new HashMap<String, Feature>();//w_1_c_0
+	public HashMap<String, Feature> m_mapNorFirstCharLastWordByWord=new HashMap<String, Feature>();//start_w_1_C_0
+	public HashMap<String, Feature> m_mapNorLastWordByLastChar=new HashMap<String, Feature>();//w_1_c_0_t_1
+	public HashMap<String, Feature> m_mapNorSeparateChars=new HashMap<String, Feature>();//end_w_1_c_0
+	public HashMap<String, Feature> m_mapNorConsecutiveChars=new HashMap<String, Feature>();//char_bigram  for app
+	public HashMap<String, Feature> m_mapNorFirstAndLastChars=new HashMap<String, Feature>(); //start_w_1end_w_1
+	public HashMap<String, Feature> m_mapNorOneCharWord=new HashMap<String, Feature>();//w-1 if(len_w-1==1)
+	public HashMap<String, Feature> m_mapNorLengthByFirstChar = new HashMap<String, Feature>();//start_w_1_len_w_1
+	public HashMap<String, Feature> m_mapNorLengthByLastChar = new HashMap<String, Feature>();//end_w_1_len_w_1
+	public HashMap<String, Feature> m_mapNorLengthByLastWord = new HashMap<String, Feature>();//w_2_len_w_1
+	public HashMap<String, Feature> m_mapNorLastLengthByWord = new HashMap<String, Feature>();//w_1_len_w_2
+	
+	// feature templates tag	
+	public HashMap<String, Feature> m_mapNorCurrentTag=new HashMap<String, Feature>(); //w_1_t_1
+	public HashMap<String, Feature> m_mapNorLastTagByTag=new HashMap<String, Feature>(); //t-1t0
+	public HashMap<String, Feature> m_mapNorLastTwoTagsByTag=new HashMap<String, Feature>(); //t-2t-1t0
+	public HashMap<String, Feature> m_mapNorTagByLastWord=new HashMap<String, Feature>(); //w-1t0
+	public HashMap<String, Feature> m_mapNorLastTagByWord=new HashMap<String, Feature>(); //w-1t-2
+	public HashMap<String, Feature> m_mapNorTagByFirstChar=new HashMap<String, Feature>();//first_char_0, tag_0
+	public HashMap<String, Feature> m_mapNorTagByLastChar=new HashMap<String, Feature>();//end_w_1_t_1
+	public HashMap<String, Feature> m_mapNorTagByChar=new HashMap<String, Feature>();//(first_char_0, tag_0  for two action
+	public HashMap<String, Feature> m_mapNorTagOfOneCharWord=new HashMap<String, Feature>();//end_w_2_w_1_c_0 if len_w_1=1 
+	public HashMap<String, Feature> m_mapNorRepeatedCharByTag=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorTagByWordAndPrevChar=new HashMap<String, Feature>();//w_1_end_w_2_t_1
+	public HashMap<String, Feature> m_mapNorTagByWordAndNextChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorTaggedCharByFirstChar=new HashMap<String, Feature>();// first_char char_unigram, tag_0 for app
+	public HashMap<String, Feature> m_mapNorTaggedCharByLastChar=new HashMap<String, Feature>();//w_1ÁöÑchar‰∏élast_char
+	
+	// extra features
+	public HashMap<String, Feature> m_mapNorTaggedSeparateChars=new HashMap<String, Feature>();//last_char_1, tag_1, first_char_0, tag_0
+	public HashMap<String, Feature> m_mapNorTaggedConsecutiveChars=new HashMap<String, Feature>();//char_bigram, tag_0 for app
+	
+	public HashMap<String, Feature> m_mapNorWordTagTag=new HashMap<String, Feature>();//word_2, tag_0_tag_1
+	public HashMap<String, Feature> m_mapNorTagWordTag=new HashMap<String, Feature>();//word_1, tag_0_tag_2
+	public HashMap<String, Feature> m_mapNorFirstCharBy2Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1
+	public HashMap<String, Feature> m_mapNorFirstCharBy3Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1_tag_2
+	public HashMap<String, Feature> m_mapNorFirstCharAndChar=new HashMap<String, Feature>();
+	
+	public HashMap<String, Feature> m_mapNorSepCharAndNextChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorAppCharAndNextChar=new HashMap<String, Feature>();
+	
+	public HashMap<String, Feature> m_mapNorPartialWord=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorPartialLengthByFirstChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorLengthByTagAndFirstChar=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorLengthByTagAndLastChar=new HashMap<String, Feature>();
+	
+	public HashMap<String, Feature> m_mapNorTag0Tag1Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+	public HashMap<String, Feature> m_mapNorTag1Tag2Size1=new HashMap<String, Feature>();//t_2_t_1_len(w_1)
+	public HashMap<String, Feature> m_mapNorTag0Tag1Tag2Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+	
+	 // feature templates knowledge
+	public HashMap<String, Feature> m_mapNorTagByFirstCharCat=new HashMap<String, Feature>();//first_char_cat_0, tag_0
+	public HashMap<String, Feature> m_mapNorTagByLastCharCat=new HashMap<String, Feature>();//last_char_cat_1, tag_1
+	public HashMap<String, Feature> m_mapNorSeparateCharCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorConsecutiveCharCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorConsecutiveCharTagCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorSeparateWordCat=new HashMap<String, Feature>();
+	public HashMap<String, Feature> m_mapNorTagByCurWordCat=new HashMap<String, Feature>();	
+	
+	//ËØç‰πâ feature templates 
+	public HashMap<String, Feature> m_mapWordSense = new HashMap<String, Feature>(); //w1s1
+	public HashMap<String, Feature> m_mapLastWordAndWordSense = new HashMap<String, Feature>(); //w1s1w0
+	public HashMap<String, Feature> m_mapPreWordAndWordSense = new HashMap<String, Feature>(); //w1s1w2
+	public HashMap<String, Feature> m_mapStartPreAndWordSense = new HashMap<String, Feature>(); //w1s1start_w2 del
+	public HashMap<String, Feature> m_mapEndPreAndWordSense = new HashMap<String, Feature>(); //w1s1end_w2
+	public HashMap<String, Feature> m_mapStartLastAndWordSense = new HashMap<String, Feature>(); //w1s1start_w0  del
+	public HashMap<String, Feature> m_mapLastCharAndWordSense = new HashMap<String, Feature>(); //w1s1C0
+	public HashMap<String, Feature> m_mapTagWordSense = new HashMap<String, Feature>(); //w1s1t1
+	public HashMap<String, Feature> m_mapPreTagAndWordSense = new HashMap<String, Feature>(); //w1s1t2
+	public HashMap<String, Feature> m_mapLastTagAndWordSense = new HashMap<String, Feature>(); //w1s1t0
+	public HashMap<String, Feature> m_mapThreeWordAndSense = new HashMap<String, Feature>(); //w1s1w0w2
+	public HashMap<String, Feature> m_mapPreLastTagAndWordSense = new HashMap<String, Feature>(); //w1s1t0t2
+	public HashMap<String, Feature> m_mapTwoWordSense = new HashMap<String, Feature>(); //w1s1w2s2
+	public HashMap<String, Feature> m_mapLastTagAndTwoWordSense = new HashMap<String, Feature>(); //w1s1w2s2t0
+	public HashMap<String, Feature> m_mapLastWordAndTwoWordSense = new HashMap<String, Feature>(); //w1s1w2s2w0
+	public HashMap<String, Feature> m_mapLastTagAndPreWordSense = new HashMap<String, Feature>(); //w2s2t0
+	public HashMap<String, Feature> m_mapLastWordAndPreWordSense = new HashMap<String, Feature>(); //w2s2w0
+	public HashMap<String, Feature> m_mapLastCharAndPreWordSense = new HashMap<String, Feature>(); //w3s2c0
+	
+	//ËØ≠Ë®ÄÊ®°Âûã
+	public HashMap<String, Feature> m_mapGram2=new HashMap<String, Feature>();//
+	public HashMap<String, Feature> m_mapGram3=new HashMap<String, Feature>();//
+	public HashMap<String, Feature> m_mapGram4=new HashMap<String, Feature>();//	
 	
 	public Model(){
 		//loadPosCloseSet();
@@ -115,85 +209,88 @@ public class Model {
 		PosCloseSet = new HashMap<String, HashSet<String>>();
 		
 		HashSet<String> newSet = new HashSet<String>();
-		newSet.add("¡À");newSet.add("◊≈");newSet.add("π˝");newSet.add("µƒ");
+		newSet.add("‰∫Ü");newSet.add("ÁùÄ");newSet.add("Ëøá");newSet.add("ÁöÑ");
 		PosCloseSet.put("AS", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("∞—");newSet.add("Ω´");
+		newSet.add("Êää");newSet.add("Â∞Ü");
 		PosCloseSet.put("BA", newSet);
 		
-		//PosCloseSet.put("CS", "»Áπ˚|")
+		//PosCloseSet.put("CS", "Â¶ÇÊûú|")
 		newSet = new HashSet<String>();
-		newSet.add("»Áπ˚");newSet.add("»Á");newSet.add("»Ù");newSet.add("ºŸ»Á");newSet.add("º¥ π");newSet.add("≤ªπ‹");
-		newSet.add("≤ª¬€");newSet.add("Œﬁ¬€");newSet.add("≤ªµ´");newSet.add("æ°π‹");newSet.add("À‰»ª");newSet.add("À‰");
-		newSet.add("÷ª“™");newSet.add("÷ª”–");newSet.add("“ªµ©");
+		newSet.add("Â¶ÇÊûú");newSet.add("Â¶Ç");newSet.add("Ëã•");newSet.add("ÂÅáÂ¶Ç");newSet.add("Âç≥‰Ωø");newSet.add("‰∏çÁÆ°");
+		newSet.add("‰∏çËÆ∫");newSet.add("Êó†ËÆ∫");newSet.add("‰∏ç‰ΩÜ");newSet.add("Â∞ΩÁÆ°");newSet.add("ËôΩÁÑ∂");newSet.add("ËôΩ");
+		newSet.add("Âè™Ë¶Å");newSet.add("Âè™Êúâ");newSet.add("‰∏ÄÊó¶");
 		PosCloseSet.put("CS", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("µƒ"); newSet.add("÷Æ");
+		newSet.add("ÁöÑ"); newSet.add("‰πã");
 		PosCloseSet.put("DEC", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("µƒ"); newSet.add("÷Æ");
+		newSet.add("ÁöÑ"); newSet.add("‰πã");
 		PosCloseSet.put("DEG", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("µ√"); 
+		newSet.add("Âæó"); 
 		PosCloseSet.put("DER", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("µÿ"); 
+		newSet.add("Âú∞"); 
 		PosCloseSet.put("DEV", newSet);		
 		
 		newSet = new HashSet<String>();
-		newSet.add("µ»"); newSet.add("µ»µ»");
+		newSet.add("Á≠â"); newSet.add("Á≠âÁ≠â");
 		PosCloseSet.put("ETC", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("±ª"); newSet.add("Ω–");newSet.add("∏¯"); newSet.add("Œ™");
+		newSet.add("Ë¢´"); newSet.add("Âè´");newSet.add("Áªô"); newSet.add("‰∏∫");
 		PosCloseSet.put("LB", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("±ª"); newSet.add("∏¯");
+		newSet.add("Ë¢´"); newSet.add("Áªô");
 		PosCloseSet.put("SB", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add(" «"); newSet.add("Œ™");newSet.add("∑«");
+		newSet.add("ÊòØ"); newSet.add("‰∏∫");newSet.add("Èùû");
 		PosCloseSet.put("VC", newSet);
 		
 		newSet = new HashSet<String>();
-		newSet.add("”–"); newSet.add("√ª");newSet.add("√ª”–");newSet.add("Œﬁ");
+		newSet.add("Êúâ"); newSet.add("Ê≤°");newSet.add("Ê≤°Êúâ");newSet.add("Êó†");
 		PosCloseSet.put("VE", newSet);
 		
 	}
 */	
 	
-	public void init(String filename){
-		m_posCloseSet = new HashMap<String, Set<String>>();
-		m_posCloseSet.put("AS", new HashSet<String>());
-		m_posCloseSet.put("BA", new HashSet<String>());
-		m_posCloseSet.put("CS", new HashSet<String>());
-		m_posCloseSet.put("CC", new HashSet<String>());
-		m_posCloseSet.put("DEC", new HashSet<String>());
-		m_posCloseSet.put("DEG", new HashSet<String>());
-		m_posCloseSet.put("DEV", new HashSet<String>());
-		m_posCloseSet.put("DER", new HashSet<String>());
-		m_posCloseSet.put("DT", new HashSet<String>());
-		m_posCloseSet.put("ETC", new HashSet<String>());
-		m_posCloseSet.put("IJ", new HashSet<String>());
-		m_posCloseSet.put("LB", new HashSet<String>());
-		m_posCloseSet.put("LC", new HashSet<String>());
-		m_posCloseSet.put("P", new HashSet<String>());
-		m_posCloseSet.put("PN", new HashSet<String>());
-		m_posCloseSet.put("PU", new HashSet<String>());
-		m_posCloseSet.put("SB", new HashSet<String>());
-		m_posCloseSet.put("SP", new HashSet<String>());
-		m_posCloseSet.put("VC", new HashSet<String>());
-		m_posCloseSet.put("VE", new HashSet<String>());
-		m_wordPOSSets = new HashMap<String, Map<String, Integer>>();
-		m_wordFreq = new HashMap<String, Integer>();
-		m_startCharPOSSets = new HashMap<String, Map<String, Integer>>();
-		m_startCharFreq = new HashMap<String, Integer>();
+	
+	public void init(String filename, boolean bNewTrain) {
+		if(bNewTrain == true){
+			m_posCloseSet = new HashMap<String, Set<String>>();
+			m_posCloseSet.put("AS", new HashSet<String>());
+			m_posCloseSet.put("BA", new HashSet<String>());
+			m_posCloseSet.put("CS", new HashSet<String>());
+			m_posCloseSet.put("CC", new HashSet<String>());
+			m_posCloseSet.put("DEC", new HashSet<String>());
+			m_posCloseSet.put("DEG", new HashSet<String>());
+			m_posCloseSet.put("DEV", new HashSet<String>());
+			m_posCloseSet.put("DER", new HashSet<String>());
+			m_posCloseSet.put("DT", new HashSet<String>());
+			m_posCloseSet.put("ETC", new HashSet<String>());
+			m_posCloseSet.put("IJ", new HashSet<String>());
+			m_posCloseSet.put("LB", new HashSet<String>());
+			m_posCloseSet.put("LC", new HashSet<String>());
+			m_posCloseSet.put("P", new HashSet<String>());
+			m_posCloseSet.put("PN", new HashSet<String>());
+			m_posCloseSet.put("PU", new HashSet<String>());
+			m_posCloseSet.put("SB", new HashSet<String>());
+			m_posCloseSet.put("SP", new HashSet<String>());
+			m_posCloseSet.put("VC", new HashSet<String>());
+			m_posCloseSet.put("VE", new HashSet<String>());
+			m_wordPOSSets = new HashMap<String, Map<String, Integer>>();
+			m_wordFreq = new HashMap<String, Integer>();
+			m_startCharPOSSets = new HashMap<String, Map<String, Integer>>();
+			m_startCharFreq = new HashMap<String, Integer>();
+		}
 		try {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					new FileInputStream(filename), "UTF-8"));
@@ -210,21 +307,29 @@ public class Model {
 						System.out.println("error input line: " + line);
 						continue;
 					}
-					String theWord = tempStr.substring(0, index);
+					String[] theWordSense = tempStr.substring(0, index).split("\\|");
+					String theWord = theWordSense[0];
+					String theSense = "";
+					if(theWordSense.length==2){
+						theSense = theWordSense[1];
+					}
+					//System.out.println(theWord + "   " + line);
 					String theFirstChar = theWord.substring(0,1);
-					String thePOS = tempStr.substring(index+1, tempStr.length());
+					String thePOS = tempStr.substring(index+1, tempStr.length());					
+					
 
 					if(!m_wordFreq.containsKey(theWord))
 					{
 						m_wordFreq.put(theWord, 0);
 						m_wordPOSSets.put(theWord, new HashMap<String, Integer>());
-					}
+					}					
 					m_wordFreq.put(theWord, m_wordFreq.get(theWord)+1);
+					
 					if(!m_wordPOSSets.get(theWord).containsKey(thePOS))
 					{
 						m_wordPOSSets.get(theWord).put(thePOS, 0);
 					}
-					m_wordPOSSets.get(theWord).put(thePOS, m_wordPOSSets.get(theWord).get(thePOS)+1);
+					m_wordPOSSets.get(theWord).put(thePOS, m_wordPOSSets.get(theWord).get(thePOS)+1);					
 					
 					if(!m_startCharFreq.containsKey(theFirstChar))
 					{
@@ -242,24 +347,57 @@ public class Model {
 					{
 						m_posCloseSet.get(thePOS).add(theWord);
 					}
-				}
-			}
-			
-			reader.close();
-		} catch (Exception e) {
+					
+					if(theSense.length()>0){
+						String theFirstCharSense = theSense.substring(0,1);
+						if(!m_wordFreq.containsKey(theSense))
+						{
+							m_wordFreq.put(theSense, 0);
+							m_wordPOSSets.put(theSense, new HashMap<String, Integer>());
+						}					
+						m_wordFreq.put(theSense, m_wordFreq.get(theWord)+1);
+						
+						if(!m_wordPOSSets.get(theSense).containsKey(thePOS))
+						{
+							m_wordPOSSets.get(theSense).put(thePOS, 0);
+						}
+						m_wordPOSSets.get(theSense).put(theSense, m_wordPOSSets.get(theSense).get(thePOS)+1);
+						
+						if(!m_startCharFreq.containsKey(theFirstCharSense))
+						{
+							m_startCharFreq.put(theFirstCharSense, 0);
+							m_startCharPOSSets.put(theFirstCharSense, new HashMap<String, Integer>());
+						}
+						m_startCharFreq.put(theFirstCharSense, m_startCharFreq.get(theFirstCharSense)+1);
+						if(!m_startCharPOSSets.get(theFirstCharSense).containsKey(thePOS))
+						{
+							m_startCharPOSSets.get(theFirstCharSense).put(thePOS, 0);
+						}
+						m_startCharPOSSets.get(theFirstCharSense).put(thePOS, m_startCharPOSSets.get(theFirstCharSense).get(thePOS)+1);
+						
+						if(m_posCloseSet.containsKey(thePOS))
+						{
+							m_posCloseSet.get(thePOS).add(theSense);
+						}					
+					}				
+				}				
+			}			
+			reader.close();			
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-	//¥”Œƒº˛÷–‘ÿ»Î
-	public void load(String filename){
-		//features=new HashMap<String, Double>();
+	//‰ªéÊñá‰ª∂‰∏≠ËΩΩÂÖ•
+	public int load(String filename){
+		int preRoundIndexForTrain = 0;				
 		newFeatureTemplates();
 		m_posCloseSet = new HashMap<String, Set<String>>();
 		m_wordPOSSets = new HashMap<String, Map<String, Integer>>();
 		m_wordFreq = new HashMap<String, Integer>();
 		m_startCharPOSSets = new HashMap<String, Map<String, Integer>>();
 		m_startCharFreq = new HashMap<String, Integer>();
+		
 		try {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					new FileInputStream(filename), "UTF-8"));
@@ -268,22 +406,25 @@ public class Model {
 			while ((line = reader.readLine()) != null) {
 				line = line.trim();
 				if(line.isEmpty())continue;
-				String[] temstrs=line.trim().split("\\s+");		
+				String[] temstrs=line.trim().split("\\s+");	
 				if(temstrs.length == 1) 
 				{
 					System.out.println("error line: " + line);
 					continue;
 				}
-				if(temstrs[0].equals("weight") && temstrs.length == 5)
+				if(temstrs[0].equals("weight") && temstrs.length == 6)
 				{
 					String name=temstrs[1].trim();
 					double dweigth= Double.parseDouble(temstrs[2]);
 					double dsum= Double.parseDouble(temstrs[3]);
-					int iindex = Integer.parseInt(temstrs[4]);
+					int iindex = (int)(Double.parseDouble(temstrs[4]));
+					double aveWeight = Double.parseDouble(temstrs[5]);
+					if(preRoundIndexForTrain==0)  preRoundIndexForTrain=iindex;
+					
 					
 					String[] names = name.split("=");								
 					HashMap<String, Feature> hm= GetFeatureTemplate(names[0]);
-					hm.put(name, new Feature(name, dweigth,dsum, iindex));	
+					hm.put(name, new Feature(name, dweigth,dsum, iindex,aveWeight));	
 				}
 				else if(temstrs[0].equals("worddict") && temstrs.length % 2 == 1)
 				{
@@ -368,10 +509,11 @@ public class Model {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}		
+		}	
+		return preRoundIndexForTrain;
 	}
 	
-	//–¥µΩŒƒº˛÷–
+	//ÂÜôÂà∞Êñá‰ª∂‰∏≠
     public void save(String filename){
 		try {
 			PrintWriter bw = new PrintWriter(new OutputStreamWriter(
@@ -420,42 +562,54 @@ public class Model {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}// ¥¥Ω®FileWriter∂‘œÛ£¨”√¿¥–¥»Î◊÷∑˚¡˜
+		}// ÂàõÂª∫FileWriterÂØπË±°ÔºåÁî®Êù•ÂÜôÂÖ•Â≠óÁ¨¶ÊµÅ
 		
 	}
     /**
-     * ∏¸–¬»®÷ÿ,◊‹∫Õ∏¸–¬¥Œ…œ¥Œ—µ¡∑¥Œ ˝
-     * @param arrFeature  Ãÿ’˜
-     * @param iType   ∏∫£∫ºı    ’˝£∫º”
-     * @param index   —µ¡∑µƒ¥Œ ˝  
+     * Êõ¥Êñ∞ÊùÉÈáç,ÊÄªÂíåÊõ¥Êñ∞Ê¨°‰∏äÊ¨°ËÆ≠ÁªÉÊ¨°Êï∞
+     * @param arrFeature  ÁâπÂæÅ
+     * @param iType   Ë¥üÔºöÂáè    Ê≠£ÔºöÂä†
+     * @param index   ËÆ≠ÁªÉÁöÑÊ¨°Êï∞  
      */
     
     public void UpdateWeighth(List<String> oprFeatures, int iType, int updateIndex){
+    	double  tempiType = iType;
+    	double dType =iType;
     	for(String curFeature : oprFeatures){
     		//System.out.println(arrFeature[i].toString());
     		//if(arrFeature[i] == null)  return;    		
-    		int _index = curFeature.indexOf("="); 
-    	
+    		int _index = curFeature.indexOf("=");     	
+    		
     		String sTemplateName = curFeature.substring(0,_index);
     		HashMap<String, Feature>  hm = GetFeatureTemplate(sTemplateName); 		
-    		Feature temp= hm.get(curFeature);
-    		if(temp!=null){
-    			if(temp.lastUpdateIndex<updateIndex){
-    			    temp.sum += (updateIndex-temp.lastUpdateIndex-1)*temp.weight;    			    
-    			}
-    			temp.weight += iType;    				
-    			temp.sum +=temp.weight;
-    			temp.lastUpdateIndex = updateIndex;
-    			hm.put(curFeature, temp);
-    		}else{    			
-    			hm.put(curFeature, new Feature(curFeature, (double)iType, (double)iType, updateIndex)); 			
+    		Feature temp= hm.get(curFeature);    		
+
+    		if(temp!=null){ 
+    			
+	    			if(temp.lastUpdateIndex<updateIndex){
+	    			   // temp.sum += (updateIndex-temp.lastUpdateIndex-1)*temp.weight;   
+	    				temp.sum += (updateIndex-temp.lastUpdateIndex)*temp.weight;  
+	    			}
+	    			if(curFeature.equals("SeenWords=‰∫ã")){
+	    				System.out.println("UpdateWeighth before:" + temp.name + temp.weight+"   " +temp.sum+"  "+ temp.lastUpdateIndex+"  "+ temp.aveWeight);
+	    			}
+	    			temp.weight += iType;    				
+	    			//temp.sum += temp.weight;
+	    			temp.sum += iType;  
+	    			temp.lastUpdateIndex = updateIndex;
+	    			//if(curFeature.equals("SeenWords=‰∫ã")){
+	    				//System.out.println("UpdateWeighth after:" + temp.name + temp.weight+"   " +temp.sum+"  "+ temp.lastUpdateIndex+"  "+ temp.aveWeight);
+	    			//}
+	    			hm.put(curFeature, temp);    			
+    		}else{   			
+    			hm.put(curFeature, new Feature(curFeature, (double)iType, (double)iType, updateIndex, 0.0));   			
     		}    		
     	}    	
     }   
     
     /**
-     * ªÒ»°∆Ωæ˘ªØ»®÷ÿ
-     * @param curRoundIndexForTrain   »®÷ÿ∏¸–¬◊‹¥Œ ˝
+     * Ëé∑ÂèñÂπ≥ÂùáÂåñÊùÉÈáç
+     * @param curRoundIndexForTrain   ÊùÉÈáçÊõ¥Êñ∞ÊÄªÊ¨°Êï∞
      */
     public void AveWeight( int curRoundIndexForTrain){
     	for(featureName f: featureName.values()){
@@ -464,172 +618,362 @@ public class Model {
     		while (iter.hasNext()) {
     		   Map.Entry<String, Feature> entry = (Map.Entry<String, Feature> ) iter.next();
     		   String key = entry.getKey();
-    		   Feature tempf = entry.getValue();
+    		   Feature tempf = entry.getValue();    		  
     		   if(tempf.lastUpdateIndex<curRoundIndexForTrain){
     			   tempf.sum+=(curRoundIndexForTrain-tempf.lastUpdateIndex)*tempf.weight;
-    			   tempf.lastUpdateIndex=curRoundIndexForTrain;
-    			   //tempf.aveWeight= tempf.sum/curRoundIndexForTrain;  
-    			   //tempf.weight=tempf.aveWeight;
+    			   tempf.lastUpdateIndex=curRoundIndexForTrain;    			   
     		   }
-    			tempf.aveWeight= tempf.sum/(curRoundIndexForTrain+1);  
+    			tempf.aveWeight= tempf.sum/(curRoundIndexForTrain);  
+    			
+    			if(tempf.name.equals("SeenWords=‰∫ã"))
+    				System.out.println("AveWeight SeenWords=‰∫ãweight:" + tempf.weight +   "ave:" + tempf.aveWeight);
     			
     			hm.put(key, tempf);
 
     		}   	
     	}
-    }
-    		
+    } 
+    
+    
+    public HashMap<String, Feature> GetFeatureTemplate(String featureTemplate){    
+    	//System.out.println(featureTemplate);
+    	featureName aa = featureName.valueOf(featureName.class, featureTemplate);   
     	
-    
-    
-    
-    public HashMap<String, Feature> GetFeatureTemplate(String featureTemplate){    	
-    	featureName aa = featureName.valueOf(featureName.class, featureTemplate);    	
     	switch(aa){    	
-    		case CharUnigram : return m_mapCharUnigram; 
-    		case CharBigram : return m_mapCharBigram; 
-    		case CharTrigram : return m_mapCharTrigram; 
-    		case SeenWords : return m_mapSeenWords; 
-    		case LastWordByWord : return m_mapLastWordByWord;   
-    		case CurrentWordLastChar : return m_mapCurrentWordLastChar; 
-    		case LastWordFirstChar : return m_mapLastWordFirstChar; 
+    		case OrgCharUnigram : return m_mapOrgCharUnigram; 
+    		case OrgCharBigram : return m_mapOrgCharBigram; 
+    		case OrgCharTrigram : return m_mapOrgCharTrigram; 
+    		case OrgSeenWords : return m_mapOrgSeenWords; 
+    		case OrgLastWordByWord : return m_mapOrgLastWordByWord;   
+    		case OrgCurrentWordLastChar : return m_mapOrgCurrentWordLastChar; 
+    		case OrgLastWordFirstChar : return m_mapOrgLastWordFirstChar; 
     		
-    		case FirstCharLastWordByWord : return m_mapFirstCharLastWordByWord; 
-    		case LastWordByLastChar : return m_mapLastWordByLastChar; 
-    		case SeparateChars : return m_mapSeparateChars; 
-    		case ConsecutiveChars : return m_mapConsecutiveChars; 
-    		case FirstAndLastChars : return m_mapFirstAndLastChars; 
-    		case OneCharWord : return m_mapOneCharWord; 
-    		case LengthByFirstChar : return m_mapLengthByFirstChar; 
-    		case LengthByLastChar : return m_mapLengthByLastChar; 
-    		case LengthByLastWord : return m_mapLengthByLastWord; 
-    		case LastLengthByWord : return m_mapLastLengthByWord; 
-    		case CurrentTag : return m_mapCurrentTag; 
+    		case OrgFirstCharLastWordByWord : return m_mapOrgFirstCharLastWordByWord; 
+    		case OrgLastWordByLastChar : return m_mapOrgLastWordByLastChar; 
+    		case OrgSeparateChars : return m_mapOrgSeparateChars; 
+    		case OrgConsecutiveChars : return m_mapOrgConsecutiveChars; 
+    		case OrgFirstAndLastChars : return m_mapOrgFirstAndLastChars; 
+    		case OrgOneCharWord : return m_mapOrgOneCharWord; 
+    		case OrgLengthByFirstChar : return m_mapOrgLengthByFirstChar; 
+    		case OrgLengthByLastChar : return m_mapOrgLengthByLastChar; 
+    		case OrgLengthByLastWord : return m_mapOrgLengthByLastWord; 
+    		case OrgLastLengthByWord : return m_mapOrgLastLengthByWord; 
+    		case OrgCurrentTag : return m_mapOrgCurrentTag; 
     		
-    		case LastTagByTag : return m_mapLastTagByTag; 
-    		case LastTwoTagsByTag : return m_mapLastTwoTagsByTag; 
-    		case TagByLastWord : return m_mapTagByLastWord; 
-    		case LastTagByWord : return m_mapLastTagByWord; 
-    		case TagByFirstChar : return m_mapTagByFirstChar; 
-    		case TagByLastChar : return m_mapTagByLastChar; 
-    		case TagByChar : return m_mapTagByChar; 
-    		case TagOfOneCharWord : return m_mapTagOfOneCharWord; 
-    		case RepeatedCharByTag : return m_mapRepeatedCharByTag; 
-    		case TagByWordAndPrevChar : return m_mapTagByWordAndPrevChar; 
-    		case TagByWordAndNextChar : return m_mapTagByWordAndNextChar; 
-    		case TaggedCharByFirstChar : return m_mapTaggedCharByFirstChar; 
-    		case TaggedCharByLastChar : return m_mapTaggedCharByLastChar; 
-    		case TaggedSeparateChars : return m_mapTaggedSeparateChars; 
-    		case TaggedConsecutiveChars : return m_mapTaggedConsecutiveChars; 
-    		case WordTagTag : return m_mapWordTagTag; 
-    		case TagWordTag : return m_mapTagWordTag;
+    		case OrgLastTagByTag : return m_mapOrgLastTagByTag; 
+    		case OrgLastTwoTagsByTag : return m_mapOrgLastTwoTagsByTag; 
+    		case OrgTagByLastWord : return m_mapOrgTagByLastWord; 
+    		case OrgLastTagByWord : return m_mapOrgLastTagByWord; 
+    		case OrgTagByFirstChar : return m_mapOrgTagByFirstChar; 
+    		case OrgTagByLastChar : return m_mapOrgTagByLastChar; 
+    		case OrgTagByChar : return m_mapOrgTagByChar; 
+    		case OrgTagOfOneCharWord : return m_mapOrgTagOfOneCharWord; 
+    		case OrgRepeatedCharByTag : return m_mapOrgRepeatedCharByTag; 
+    		case OrgTagByWordAndPrevChar : return m_mapOrgTagByWordAndPrevChar; 
+    		case OrgTagByWordAndNextChar : return m_mapOrgTagByWordAndNextChar; 
+    		case OrgTaggedCharByFirstChar : return m_mapOrgTaggedCharByFirstChar; 
+    		case OrgTaggedCharByLastChar : return m_mapOrgTaggedCharByLastChar; 
+    		case OrgTaggedSeparateChars : return m_mapOrgTaggedSeparateChars; 
+    		case OrgTaggedConsecutiveChars : return m_mapOrgTaggedConsecutiveChars; 
+    		case OrgWordTagTag : return m_mapOrgWordTagTag; 
+    		case OrgTagWordTag : return m_mapOrgTagWordTag;
     		
-    		case FirstCharBy2Tags : return m_mapFirstCharBy2Tags; 
-    		case FirstCharBy3Tags : return m_mapFirstCharBy3Tags; 
-    		case FirstCharAndChar : return m_mapFirstCharAndChar; 
-    		case SepCharAndNextChar : return m_mapSepCharAndNextChar; 
-    		case AppCharAndNextChar : return m_mapAppCharAndNextChar; 
-    		case PartialLengthByFirstChar : return m_mapPartialLengthByFirstChar; 
-    		case LengthByTagAndFirstChar : return m_mapLengthByTagAndFirstChar; 
-    		case LengthByTagAndLastChar : return m_mapLengthByTagAndLastChar; 
-    		case Tag0Tag1Size1 : return m_mapTag0Tag1Size1; 
-    		case Tag1Tag2Size1 : return m_mapTag1Tag2Size1; 
-    		case Tag0Tag1Tag2Size1 : return m_mapTag0Tag1Tag2Size1; 
-    		case TagByFirstCharCat : return m_mapTagByFirstCharCat; 
-    		case TagByLastCharCat : return m_mapTagByLastCharCat; 
-    		case SeparateCharCat : return m_mapSeparateCharCat; 
-    		case ConsecutiveCharCat : return m_mapConsecutiveCharCat;  
-    		case PartialWord: return m_mapPartialWord;
-    		case ConsecutiveCharTagCat: return m_mapConsecutiveCharTagCat;
-    		case SeparateWordCat: return m_mapSeparateWordCat;
-    		case TagByCurWordCat: return m_mapTagByCurWordCat;    	
+    		case OrgFirstCharBy2Tags : return m_mapOrgFirstCharBy2Tags; 
+    		case OrgFirstCharBy3Tags : return m_mapOrgFirstCharBy3Tags; 
+    		case OrgFirstCharAndChar : return m_mapOrgFirstCharAndChar; 
+    		case OrgSepCharAndNextChar : return m_mapOrgSepCharAndNextChar; 
+    		case OrgAppCharAndNextChar : return m_mapOrgAppCharAndNextChar; 
+    		case OrgPartialLengthByFirstChar : return m_mapOrgPartialLengthByFirstChar; 
+    		case OrgLengthByTagAndFirstChar : return m_mapOrgLengthByTagAndFirstChar; 
+    		case OrgLengthByTagAndLastChar : return m_mapOrgLengthByTagAndLastChar; 
+    		case OrgTag0Tag1Size1 : return m_mapOrgTag0Tag1Size1; 
+    		case OrgTag1Tag2Size1 : return m_mapOrgTag1Tag2Size1; 
+    		case OrgTag0Tag1Tag2Size1 : return m_mapOrgTag0Tag1Tag2Size1; 
+    		case OrgTagByFirstCharCat : return m_mapOrgTagByFirstCharCat; 
+    		case OrgTagByLastCharCat : return m_mapOrgTagByLastCharCat; 
+    		case OrgSeparateCharCat : return m_mapOrgSeparateCharCat; 
+    		case OrgConsecutiveCharCat : return m_mapOrgConsecutiveCharCat;  
+    		case OrgPartialWord: return m_mapOrgPartialWord;
+    		case OrgConsecutiveCharTagCat: return m_mapOrgConsecutiveCharTagCat;
+    		case OrgSeparateWordCat: return m_mapOrgSeparateWordCat;
+    		case OrgTagByCurWordCat: return m_mapOrgTagByCurWordCat;       		
+    		//normalization
+    		case NorCharUnigram : return m_mapNorCharUnigram; 
+    		case NorCharBigram : return m_mapNorCharBigram; 
+    		case NorCharTrigram : return m_mapNorCharTrigram; 
+    		case NorSeenWords : return m_mapNorSeenWords; 
+    		case NorLastWordByWord : return m_mapNorLastWordByWord;   
+    		case NorCurrentWordLastChar : return m_mapNorCurrentWordLastChar; 
+    		case NorLastWordFirstChar : return m_mapNorLastWordFirstChar; 
+    		
+    		case NorFirstCharLastWordByWord : return m_mapNorFirstCharLastWordByWord; 
+    		case NorLastWordByLastChar : return m_mapNorLastWordByLastChar; 
+    		case NorSeparateChars : return m_mapNorSeparateChars; 
+    		case NorConsecutiveChars : return m_mapNorConsecutiveChars; 
+    		case NorFirstAndLastChars : return m_mapNorFirstAndLastChars; 
+    		case NorOneCharWord : return m_mapNorOneCharWord; 
+    		case NorLengthByFirstChar : return m_mapNorLengthByFirstChar; 
+    		case NorLengthByLastChar : return m_mapNorLengthByLastChar; 
+    		case NorLengthByLastWord : return m_mapNorLengthByLastWord; 
+    		case NorLastLengthByWord : return m_mapNorLastLengthByWord; 
+    		case NorCurrentTag : return m_mapNorCurrentTag; 
+    		
+    		case NorLastTagByTag : return m_mapNorLastTagByTag; 
+    		case NorLastTwoTagsByTag : return m_mapNorLastTwoTagsByTag; 
+    		case NorTagByLastWord : return m_mapNorTagByLastWord; 
+    		case NorLastTagByWord : return m_mapNorLastTagByWord; 
+    		case NorTagByFirstChar : return m_mapNorTagByFirstChar; 
+    		case NorTagByLastChar : return m_mapNorTagByLastChar; 
+    		case NorTagByChar : return m_mapNorTagByChar; 
+    		case NorTagOfOneCharWord : return m_mapNorTagOfOneCharWord; 
+    		case NorRepeatedCharByTag : return m_mapNorRepeatedCharByTag; 
+    		case NorTagByWordAndPrevChar : return m_mapNorTagByWordAndPrevChar; 
+    		case NorTagByWordAndNextChar : return m_mapNorTagByWordAndNextChar; 
+    		case NorTaggedCharByFirstChar : return m_mapNorTaggedCharByFirstChar; 
+    		case NorTaggedCharByLastChar : return m_mapNorTaggedCharByLastChar; 
+    		case NorTaggedSeparateChars : return m_mapNorTaggedSeparateChars; 
+    		case NorTaggedConsecutiveChars : return m_mapNorTaggedConsecutiveChars; 
+    		case NorWordTagTag : return m_mapNorWordTagTag; 
+    		case NorTagWordTag : return m_mapNorTagWordTag;
+    		
+    		case NorFirstCharBy2Tags : return m_mapNorFirstCharBy2Tags; 
+    		case NorFirstCharBy3Tags : return m_mapNorFirstCharBy3Tags; 
+    		case NorFirstCharAndChar : return m_mapNorFirstCharAndChar; 
+    		case NorSepCharAndNextChar : return m_mapNorSepCharAndNextChar; 
+    		case NorAppCharAndNextChar : return m_mapNorAppCharAndNextChar; 
+    		case NorPartialLengthByFirstChar : return m_mapNorPartialLengthByFirstChar; 
+    		case NorLengthByTagAndFirstChar : return m_mapNorLengthByTagAndFirstChar; 
+    		case NorLengthByTagAndLastChar : return m_mapNorLengthByTagAndLastChar; 
+    		case NorTag0Tag1Size1 : return m_mapNorTag0Tag1Size1; 
+    		case NorTag1Tag2Size1 : return m_mapNorTag1Tag2Size1; 
+    		case NorTag0Tag1Tag2Size1 : return m_mapNorTag0Tag1Tag2Size1; 
+    		case NorTagByFirstCharCat : return m_mapNorTagByFirstCharCat; 
+    		case NorTagByLastCharCat : return m_mapNorTagByLastCharCat; 
+    		case NorSeparateCharCat : return m_mapNorSeparateCharCat; 
+    		case NorConsecutiveCharCat : return m_mapNorConsecutiveCharCat;  
+    		case NorPartialWord: return m_mapNorPartialWord;
+    		case NorConsecutiveCharTagCat: return m_mapNorConsecutiveCharTagCat;
+    		case NorSeparateWordCat: return m_mapNorSeparateWordCat;
+    		case NorTagByCurWordCat: return m_mapNorTagByCurWordCat; 
+    		
+    		
+    		//ËØç‰πâ feature templates 
+    		case WordSense: return m_mapWordSense  ; //w1s1
+    		case LastWordAndWordSense: return m_mapLastWordAndWordSense  ; //w1s1w0
+    		case PreWordAndWordSense: return m_mapPreWordAndWordSense  ; //w1s1w2
+    		case StartPreAndWordSense:  return m_mapStartPreAndWordSense  ; //w1s1statr_w2
+    		case EndPreAndWordSense:  return m_mapEndPreAndWordSense  ; //w1s1end_w2
+    		case StartLastAndWordSense:  return m_mapStartLastAndWordSense  ; //w1s1start_w0
+    		case LastCharAndWordSense:  return m_mapLastCharAndWordSense  ; //w1s1C0
+    		case TagWordSense:  return m_mapTagWordSense  ; //w1s1t1
+    		case PreTagAndWordSense:  return m_mapPreTagAndWordSense  ; //w1s1t2
+    		case LastTagAndWordSense:  return m_mapLastTagAndWordSense  ; //w1s1t0
+    		case ThreeWordAndSense:  return m_mapThreeWordAndSense  ; //w1s1w0w2
+    		case PreLastTagAndWordSense:  return m_mapPreLastTagAndWordSense  ; //w1s1t0t2
+    		case TwoWordSense:  return m_mapTwoWordSense  ; //w1s1w2s2
+    		case LastTagAndTwoWordSense:  return m_mapLastTagAndTwoWordSense  ; //w1s1w2s2t0
+    		case LastWordAndTwoWordSense:  return m_mapLastWordAndTwoWordSense  ; //w1s1w2s2w0
+    		case LastTagAndPreWordSense:  return m_mapLastTagAndPreWordSense  ; //w2s2t0
+    		case LastWordAndPreWordSense:  return m_mapLastWordAndPreWordSense  ; //w2s2w0
+    		case LastCharAndPreWordSense:  return m_mapLastCharAndPreWordSense  ; //w3s2c0
+    		
+    		case Gram2: return m_mapGram2;
+    		case Gram3: return m_mapGram3;
+    		case Gram4: return m_mapGram4;
     	}
-    	return null;
-    	
+    	return null;    	
     }
     public enum featureName{
-    	CharUnigram,CharBigram,CharTrigram,SeenWords,LastWordByWord,CurrentWordLastChar,LastWordFirstChar,
-    	FirstCharLastWordByWord,LastWordByLastChar,SeparateChars,ConsecutiveChars,FirstAndLastChars,
-    	OneCharWord,LengthByFirstChar,LengthByLastChar,LengthByLastWord,LastLengthByWord,CurrentTag,  
-    	LastTagByTag,  LastTwoTagsByTag,TagByLastWord,LastTagByWord,TagByFirstChar,TagByLastChar,TagByChar,
-    	TagOfOneCharWord,RepeatedCharByTag, TagByWordAndPrevChar,TagByWordAndNextChar,TagWordTag,
-    	TaggedCharByFirstChar,TaggedCharByLastChar,TaggedSeparateChars,TaggedConsecutiveChars,WordTagTag,
-    	FirstCharBy2Tags,FirstCharBy3Tags,FirstCharAndChar,SepCharAndNextChar,AppCharAndNextChar, PartialWord,
-    	PartialLengthByFirstChar,LengthByTagAndFirstChar,LengthByTagAndLastChar,Tag0Tag1Size1,
-    	Tag1Tag2Size1,Tag0Tag1Tag2Size1,TagByFirstCharCat,TagByLastCharCat,SeparateCharCat,ConsecutiveCharCat,
-    	ConsecutiveCharTagCat, SeparateWordCat,TagByCurWordCat;
+    	OrgCharUnigram,OrgCharBigram,OrgCharTrigram,OrgSeenWords,OrgLastWordByWord,OrgCurrentWordLastChar,OrgLastWordFirstChar,
+    	OrgFirstCharLastWordByWord,OrgLastWordByLastChar,OrgSeparateChars,OrgConsecutiveChars,OrgFirstAndLastChars,
+    	OrgOneCharWord,OrgLengthByFirstChar,OrgLengthByLastChar,OrgLengthByLastWord,OrgLastLengthByWord,OrgCurrentTag,  
+    	OrgLastTagByTag,  OrgLastTwoTagsByTag,OrgTagByLastWord,OrgLastTagByWord,OrgTagByFirstChar,OrgTagByLastChar,OrgTagByChar,
+    	OrgTagOfOneCharWord,OrgRepeatedCharByTag, OrgTagByWordAndPrevChar,OrgTagByWordAndNextChar,OrgTagWordTag,
+    	OrgTaggedCharByFirstChar,OrgTaggedCharByLastChar,OrgTaggedSeparateChars,OrgTaggedConsecutiveChars,OrgWordTagTag,
+    	OrgFirstCharBy2Tags,OrgFirstCharBy3Tags,OrgFirstCharAndChar,OrgSepCharAndNextChar,OrgAppCharAndNextChar, OrgPartialWord,
+    	OrgPartialLengthByFirstChar,OrgLengthByTagAndFirstChar,OrgLengthByTagAndLastChar,OrgTag0Tag1Size1,
+    	OrgTag1Tag2Size1,OrgTag0Tag1Tag2Size1,OrgTagByFirstCharCat,OrgTagByLastCharCat,OrgSeparateCharCat,OrgConsecutiveCharCat,
+    	OrgConsecutiveCharTagCat, OrgSeparateWordCat,OrgTagByCurWordCat,
+    	NorCharUnigram,NorCharBigram,NorCharTrigram,NorSeenWords,NorLastWordByWord,NorCurrentWordLastChar,NorLastWordFirstChar,
+    	NorFirstCharLastWordByWord,NorLastWordByLastChar,NorSeparateChars,NorConsecutiveChars,NorFirstAndLastChars,
+    	NorOneCharWord,NorLengthByFirstChar,NorLengthByLastChar,NorLengthByLastWord,NorLastLengthByWord,NorCurrentTag,  
+    	NorLastTagByTag,  NorLastTwoTagsByTag,NorTagByLastWord,NorLastTagByWord,NorTagByFirstChar,NorTagByLastChar,NorTagByChar,
+    	NorTagOfOneCharWord,NorRepeatedCharByTag, NorTagByWordAndPrevChar,NorTagByWordAndNextChar,NorTagWordTag,
+    	NorTaggedCharByFirstChar,NorTaggedCharByLastChar,NorTaggedSeparateChars,NorTaggedConsecutiveChars,NorWordTagTag,
+    	NorFirstCharBy2Tags,NorFirstCharBy3Tags,NorFirstCharAndChar,NorSepCharAndNextChar,NorAppCharAndNextChar, NorPartialWord,
+    	NorPartialLengthByFirstChar,NorLengthByTagAndFirstChar,NorLengthByTagAndLastChar,NorTag0Tag1Size1,
+    	NorTag1Tag2Size1,NorTag0Tag1Tag2Size1,NorTagByFirstCharCat,NorTagByLastCharCat,NorSeparateCharCat,NorConsecutiveCharCat,
+    	NorConsecutiveCharTagCat, NorSeparateWordCat,NorTagByCurWordCat,
+    	WordSense,LastWordAndWordSense,PreWordAndWordSense,StartPreAndWordSense,EndPreAndWordSense,StartLastAndWordSense,
+    	LastCharAndWordSense,TagWordSense,PreTagAndWordSense,LastTagAndWordSense,ThreeWordAndSense,PreLastTagAndWordSense,
+    	TwoWordSense,LastTagAndTwoWordSense,LastWordAndTwoWordSense,LastTagAndPreWordSense,LastWordAndPreWordSense,
+    	LastCharAndPreWordSense,Gram2,Gram3,Gram4;
     }
     
   //instantiation features
 	public void newFeatureTemplates(){
 		// feature templates abstd::cout characters
-		m_mapCharUnigram=new HashMap<String, Feature>();   //C0
-		m_mapCharBigram=new HashMap<String, Feature>();    //C-1C0
-		m_mapCharTrigram=new HashMap<String, Feature>();   //C-2C-1C0
+		m_mapNorCharUnigram=new HashMap<String, Feature>();   //C0
+		m_mapOrgCharBigram=new HashMap<String, Feature>();    //C-1C0
+		m_mapOrgCharTrigram=new HashMap<String, Feature>();   //C-2C-1C0
 		
 		// feature templates abstd::cout words	  
-		m_mapSeenWords=new HashMap<String, Feature>();     //w_1
-		m_mapLastWordByWord=new HashMap<String, Feature>(); //w-2w-1
-		m_mapCurrentWordLastChar=new HashMap<String, Feature>();//w_1_end_w_2
-		m_mapLastWordFirstChar=new HashMap<String, Feature>();//w_1_c_0
-		m_mapFirstCharLastWordByWord=new HashMap<String, Feature>();//start_w_1_C_0
-		m_mapLastWordByLastChar=new HashMap<String, Feature>();//w_1_c_0_t_1
-		m_mapSeparateChars=new HashMap<String, Feature>();//end_w_1_c_0
-		m_mapConsecutiveChars=new HashMap<String, Feature>();//char_bigram  for app
-		m_mapFirstAndLastChars=new HashMap<String, Feature>(); //start_w_1end_w_1
-		m_mapOneCharWord=new HashMap<String, Feature>();//w-1 if(len_w-1==1)
-		m_mapLengthByFirstChar = new HashMap<String, Feature>();//start_w_1_len_w_1
-		m_mapLengthByLastChar = new HashMap<String, Feature>();//end_w_1_len_w_1
-		m_mapLengthByLastWord = new HashMap<String, Feature>();//w_2_len_w_1
-		m_mapLastLengthByWord = new HashMap<String, Feature>();//w_1_len_w_2
+		m_mapOrgSeenWords=new HashMap<String, Feature>();     //w_1
+		m_mapOrgLastWordByWord=new HashMap<String, Feature>(); //w-2w-1
+		m_mapOrgCurrentWordLastChar=new HashMap<String, Feature>();//w_1_end_w_2
+		m_mapOrgLastWordFirstChar=new HashMap<String, Feature>();//w_1_c_0
+		m_mapOrgFirstCharLastWordByWord=new HashMap<String, Feature>();//start_w_1_C_0
+		m_mapOrgLastWordByLastChar=new HashMap<String, Feature>();//w_1_c_0_t_1
+		m_mapOrgSeparateChars=new HashMap<String, Feature>();//end_w_1_c_0
+		m_mapOrgConsecutiveChars=new HashMap<String, Feature>();//char_bigram  for app
+		m_mapOrgFirstAndLastChars=new HashMap<String, Feature>(); //start_w_1end_w_1
+		m_mapOrgOneCharWord=new HashMap<String, Feature>();//w-1 if(len_w-1==1)
+		m_mapOrgLengthByFirstChar = new HashMap<String, Feature>();//start_w_1_len_w_1
+		m_mapOrgLengthByLastChar = new HashMap<String, Feature>();//end_w_1_len_w_1
+		m_mapOrgLengthByLastWord = new HashMap<String, Feature>();//w_2_len_w_1
+		m_mapOrgLastLengthByWord = new HashMap<String, Feature>();//w_1_len_w_2
 		
 		// feature templates tag	
-		m_mapCurrentTag=new HashMap<String, Feature>(); //w_1_t_1
-		m_mapLastTagByTag=new HashMap<String, Feature>(); //t-1t0
-		m_mapLastTwoTagsByTag=new HashMap<String, Feature>(); //t-2t-1t0
-		m_mapTagByLastWord=new HashMap<String, Feature>(); //w-1t0
-		m_mapLastTagByWord=new HashMap<String, Feature>(); //w-1t-2
-		m_mapTagByFirstChar=new HashMap<String, Feature>();//first_char_0, tag_0
-		m_mapTagByLastChar=new HashMap<String, Feature>();//end_w_1_t_1
-		m_mapTagByChar=new HashMap<String, Feature>();//(first_char_0, tag_0  for two action
-		m_mapTagOfOneCharWord=new HashMap<String, Feature>();//end_w_2_w_1_c_0 if len_w_1=1 
-		m_mapRepeatedCharByTag=new HashMap<String, Feature>();
-		m_mapTagByWordAndPrevChar=new HashMap<String, Feature>();//w_1_end_w_2_t_1
-		m_mapTagByWordAndNextChar=new HashMap<String, Feature>();
-		m_mapTaggedCharByFirstChar=new HashMap<String, Feature>();// first_char char_unigram, tag_0 for app
-		m_mapTaggedCharByLastChar=new HashMap<String, Feature>();//w_1µƒchar”Îlast_char
+		m_mapOrgCurrentTag=new HashMap<String, Feature>(); //w_1_t_1
+		m_mapOrgLastTagByTag=new HashMap<String, Feature>(); //t-1t0
+		m_mapOrgLastTwoTagsByTag=new HashMap<String, Feature>(); //t-2t-1t0
+		m_mapOrgTagByLastWord=new HashMap<String, Feature>(); //w-1t0
+		m_mapOrgLastTagByWord=new HashMap<String, Feature>(); //w-1t-2
+		m_mapOrgTagByFirstChar=new HashMap<String, Feature>();//first_char_0, tag_0
+		m_mapOrgTagByLastChar=new HashMap<String, Feature>();//end_w_1_t_1
+		m_mapOrgTagByChar=new HashMap<String, Feature>();//(first_char_0, tag_0  for two action
+		m_mapOrgTagOfOneCharWord=new HashMap<String, Feature>();//end_w_2_w_1_c_0 if len_w_1=1 
+		m_mapOrgRepeatedCharByTag=new HashMap<String, Feature>();
+		m_mapOrgTagByWordAndPrevChar=new HashMap<String, Feature>();//w_1_end_w_2_t_1
+		m_mapOrgTagByWordAndNextChar=new HashMap<String, Feature>();
+		m_mapOrgTaggedCharByFirstChar=new HashMap<String, Feature>();// first_char char_unigram, tag_0 for app
+		m_mapOrgTaggedCharByLastChar=new HashMap<String, Feature>();//w_1ÁöÑchar‰∏élast_char
 		
 		// extra features
-		m_mapTaggedSeparateChars=new HashMap<String, Feature>();//last_char_1, tag_1, first_char_0, tag_0
-		m_mapTaggedConsecutiveChars=new HashMap<String, Feature>();//char_bigram, tag_0 for app
+		m_mapOrgTaggedSeparateChars=new HashMap<String, Feature>();//last_char_1, tag_1, first_char_0, tag_0
+		m_mapOrgTaggedConsecutiveChars=new HashMap<String, Feature>();//char_bigram, tag_0 for app
 		
-		m_mapWordTagTag=new HashMap<String, Feature>();//word_2, tag_0_tag_1
-		m_mapTagWordTag=new HashMap<String, Feature>();//word_1, tag_0_tag_2
-		m_mapFirstCharBy2Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1
-		m_mapFirstCharBy3Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1_tag_2
-		m_mapFirstCharAndChar=new HashMap<String, Feature>();
+		m_mapOrgWordTagTag=new HashMap<String, Feature>();//word_2, tag_0_tag_1
+		m_mapOrgTagWordTag=new HashMap<String, Feature>();//word_1, tag_0_tag_2
+		m_mapOrgFirstCharBy2Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1
+		m_mapOrgFirstCharBy3Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1_tag_2
+		m_mapOrgFirstCharAndChar=new HashMap<String, Feature>();
 		
-		m_mapSepCharAndNextChar=new HashMap<String, Feature>();
-		m_mapAppCharAndNextChar=new HashMap<String, Feature>();
+		m_mapOrgSepCharAndNextChar=new HashMap<String, Feature>();
+		m_mapOrgAppCharAndNextChar=new HashMap<String, Feature>();
 		
-		m_mapPartialWord=new HashMap<String, Feature>();
-		m_mapPartialLengthByFirstChar=new HashMap<String, Feature>();
-		m_mapLengthByTagAndFirstChar=new HashMap<String, Feature>();
-		m_mapLengthByTagAndLastChar=new HashMap<String, Feature>();
+		m_mapOrgPartialWord=new HashMap<String, Feature>();
+		m_mapOrgPartialLengthByFirstChar=new HashMap<String, Feature>();
+		m_mapOrgLengthByTagAndFirstChar=new HashMap<String, Feature>();
+		m_mapOrgLengthByTagAndLastChar=new HashMap<String, Feature>();
 		
-		m_mapTag0Tag1Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
-		m_mapTag1Tag2Size1=new HashMap<String, Feature>();//t_2_t_1_len(w_1)
-		m_mapTag0Tag1Tag2Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+		m_mapOrgTag0Tag1Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+		m_mapOrgTag1Tag2Size1=new HashMap<String, Feature>();//t_2_t_1_len(w_1)
+		m_mapOrgTag0Tag1Tag2Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
 		
 		 // feature templates knowledge
-		m_mapTagByFirstCharCat=new HashMap<String, Feature>();//first_char_cat_0, tag_0
-		m_mapTagByLastCharCat=new HashMap<String, Feature>();//last_char_cat_1, tag_1
-		m_mapSeparateCharCat=new HashMap<String, Feature>();
-		m_mapConsecutiveCharCat=new HashMap<String, Feature>();
+		m_mapOrgTagByFirstCharCat=new HashMap<String, Feature>();//first_char_cat_0, tag_0
+		m_mapOrgTagByLastCharCat=new HashMap<String, Feature>();//last_char_cat_1, tag_1
+		m_mapOrgSeparateCharCat=new HashMap<String, Feature>();
+		m_mapOrgConsecutiveCharCat=new HashMap<String, Feature>();
 		
-		m_mapConsecutiveCharTagCat=new HashMap<String, Feature>();
-		m_mapSeparateWordCat=new HashMap<String, Feature>();
-		m_mapTagByCurWordCat=new HashMap<String, Feature>(); 	
+		m_mapOrgConsecutiveCharTagCat=new HashMap<String, Feature>();
+		m_mapOrgSeparateWordCat=new HashMap<String, Feature>();
+		m_mapOrgTagByCurWordCat=new HashMap<String, Feature>(); 
+		
+		// normalization features
+		m_mapNorCharUnigram=new HashMap<String, Feature>();   //C0
+		m_mapNorCharBigram=new HashMap<String, Feature>();    //C-1C0
+		m_mapNorCharTrigram=new HashMap<String, Feature>();   //C-2C-1C0
+		
+		// feature templates abstd::cout words	  
+		m_mapNorSeenWords=new HashMap<String, Feature>();     //w_1
+		m_mapNorLastWordByWord=new HashMap<String, Feature>(); //w-2w-1
+		m_mapNorCurrentWordLastChar=new HashMap<String, Feature>();//w_1_end_w_2
+		m_mapNorLastWordFirstChar=new HashMap<String, Feature>();//w_1_c_0
+		m_mapNorFirstCharLastWordByWord=new HashMap<String, Feature>();//start_w_1_C_0
+		m_mapNorLastWordByLastChar=new HashMap<String, Feature>();//w_1_c_0_t_1
+		m_mapNorSeparateChars=new HashMap<String, Feature>();//end_w_1_c_0
+		m_mapNorConsecutiveChars=new HashMap<String, Feature>();//char_bigram  for app
+		m_mapNorFirstAndLastChars=new HashMap<String, Feature>(); //start_w_1end_w_1
+		m_mapNorOneCharWord=new HashMap<String, Feature>();//w-1 if(len_w-1==1)
+		m_mapNorLengthByFirstChar = new HashMap<String, Feature>();//start_w_1_len_w_1
+		m_mapNorLengthByLastChar = new HashMap<String, Feature>();//end_w_1_len_w_1
+		m_mapNorLengthByLastWord = new HashMap<String, Feature>();//w_2_len_w_1
+		m_mapNorLastLengthByWord = new HashMap<String, Feature>();//w_1_len_w_2
+		
+		// feature templates tag	
+		m_mapNorCurrentTag=new HashMap<String, Feature>(); //w_1_t_1
+		m_mapNorLastTagByTag=new HashMap<String, Feature>(); //t-1t0
+		m_mapNorLastTwoTagsByTag=new HashMap<String, Feature>(); //t-2t-1t0
+		m_mapNorTagByLastWord=new HashMap<String, Feature>(); //w-1t0
+		m_mapNorLastTagByWord=new HashMap<String, Feature>(); //w-1t-2
+		m_mapNorTagByFirstChar=new HashMap<String, Feature>();//first_char_0, tag_0
+		m_mapNorTagByLastChar=new HashMap<String, Feature>();//end_w_1_t_1
+		m_mapNorTagByChar=new HashMap<String, Feature>();//(first_char_0, tag_0  for two action
+		m_mapNorTagOfOneCharWord=new HashMap<String, Feature>();//end_w_2_w_1_c_0 if len_w_1=1 
+		m_mapNorRepeatedCharByTag=new HashMap<String, Feature>();
+		m_mapNorTagByWordAndPrevChar=new HashMap<String, Feature>();//w_1_end_w_2_t_1
+		m_mapNorTagByWordAndNextChar=new HashMap<String, Feature>();
+		m_mapNorTaggedCharByFirstChar=new HashMap<String, Feature>();// first_char char_unigram, tag_0 for app
+		m_mapNorTaggedCharByLastChar=new HashMap<String, Feature>();//w_1ÁöÑchar‰∏élast_char
+		
+		// extra features
+		m_mapNorTaggedSeparateChars=new HashMap<String, Feature>();//last_char_1, tag_1, first_char_0, tag_0
+		m_mapNorTaggedConsecutiveChars=new HashMap<String, Feature>();//char_bigram, tag_0 for app
+		
+		m_mapNorWordTagTag=new HashMap<String, Feature>();//word_2, tag_0_tag_1
+		m_mapNorTagWordTag=new HashMap<String, Feature>();//word_1, tag_0_tag_2
+		m_mapNorFirstCharBy2Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1
+		m_mapNorFirstCharBy3Tags=new HashMap<String, Feature>();//first_char_0, tag_0_tag_1_tag_2
+		m_mapNorFirstCharAndChar=new HashMap<String, Feature>();
+		
+		m_mapNorSepCharAndNextChar=new HashMap<String, Feature>();
+		m_mapNorAppCharAndNextChar=new HashMap<String, Feature>();
+		
+		m_mapNorPartialWord=new HashMap<String, Feature>();
+		m_mapNorPartialLengthByFirstChar=new HashMap<String, Feature>();
+		m_mapNorLengthByTagAndFirstChar=new HashMap<String, Feature>();
+		m_mapNorLengthByTagAndLastChar=new HashMap<String, Feature>();
+		
+		m_mapNorTag0Tag1Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+		m_mapNorTag1Tag2Size1=new HashMap<String, Feature>();//t_2_t_1_len(w_1)
+		m_mapNorTag0Tag1Tag2Size1=new HashMap<String, Feature>();//t_1_t_0_len(w_1)
+		
+		 // feature templates knowledge
+		m_mapNorTagByFirstCharCat=new HashMap<String, Feature>();//first_char_cat_0, tag_0
+		m_mapNorTagByLastCharCat=new HashMap<String, Feature>();//last_char_cat_1, tag_1
+		m_mapNorSeparateCharCat=new HashMap<String, Feature>();
+		m_mapNorConsecutiveCharCat=new HashMap<String, Feature>();
+		
+		m_mapNorConsecutiveCharTagCat=new HashMap<String, Feature>();
+		m_mapNorSeparateWordCat=new HashMap<String, Feature>();
+		m_mapNorTagByCurWordCat=new HashMap<String, Feature>(); 
+		
+		
+		//ËØç‰πâ feature templates 
+		m_mapWordSense  =new HashMap<String, Feature>(); //w1s1
+		m_mapLastWordAndWordSense  =new HashMap<String, Feature>(); //w1s1w0
+		m_mapPreWordAndWordSense  =new HashMap<String, Feature>(); //w1s1w2
+		m_mapStartPreAndWordSense  =new HashMap<String, Feature>(); //w1s1statr_w2
+		m_mapEndPreAndWordSense  =new HashMap<String, Feature>(); //w1s1end_w2
+		m_mapStartLastAndWordSense  =new HashMap<String, Feature>(); //w1s1start_w0
+		m_mapLastCharAndWordSense  =new HashMap<String, Feature>(); //w1s1C0
+		m_mapTagWordSense  =new HashMap<String, Feature>(); //w1s1t1
+		m_mapPreTagAndWordSense  =new HashMap<String, Feature>(); //w1s1t2
+		m_mapLastTagAndWordSense  =new HashMap<String, Feature>(); //w1s1t0
+		m_mapThreeWordAndSense  =new HashMap<String, Feature>(); //w1s1w0w2
+		m_mapPreLastTagAndWordSense  =new HashMap<String, Feature>(); //w1s1t0t2
+		m_mapTwoWordSense  =new HashMap<String, Feature>(); //w1s1w2s2
+		m_mapLastTagAndTwoWordSense  =new HashMap<String, Feature>(); //w1s1w2s2t0
+		m_mapLastWordAndTwoWordSense  =new HashMap<String, Feature>(); //w1s1w2s2w0
+		m_mapLastTagAndPreWordSense  =new HashMap<String, Feature>(); //w2s2t0
+		m_mapLastWordAndPreWordSense  =new HashMap<String, Feature>(); //w2s2w0
+		m_mapLastCharAndPreWordSense  =new HashMap<String, Feature>(); //w3s2c0
+		
+		m_mapGram2 = new HashMap<String, Feature>();
+		m_mapGram3 = new HashMap<String, Feature>();
+		m_mapGram4 = new HashMap<String, Feature>();
 	}
 	
 	
