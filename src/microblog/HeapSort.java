@@ -58,7 +58,7 @@ public class HeapSort {
          }
     }
     /**
-     * ¹¹ÔìÒ»¸öĞ¡¶¥¶Ñ;
+     * æ„é€ ä¸€ä¸ªå°é¡¶å †;
      * @param a
      * @param n
      */
@@ -68,9 +68,9 @@ public class HeapSort {
         }
     }
     /**
-     * Èç
-     * @param a Ğ¡¶¥¶Ñ
-     * @param b ĞÂ²åÈëµã
+     * å¦‚
+     * @param a å°é¡¶å †
+     * @param b æ–°æ’å…¥ç‚¹
      */
     public State[] BestAgendaSort(State[] a, State b){  
     	    a[0] = b;
@@ -126,5 +126,5 @@ public class HeapSort {
     	State temp = pArray[pX];
          pArray[pX] = pArray[pY];
          pArray[pY] = temp;
-    }
+    } 
 }
