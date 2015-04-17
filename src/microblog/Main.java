@@ -2,9 +2,7 @@ package microblog;
 
 import java.util.*;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.PosixParser;
+
 
 public class Main {
 
@@ -34,11 +32,14 @@ public class Main {
 			String train_file= args[1].trim();
 			String model_file= args[2].trim();
 			int number_of_train = Integer.parseInt(args[3].trim());
-			int number_of_iterations= Integer.parseInt(args[4].trim());			
+			int number_of_iterations= Integer.parseInt(args[4].trim());
 			boolean bNewTrain= Boolean.parseBoolean(args[5].trim());
 			int search_width = Integer.parseInt(args[6].trim());
-			String output_path= args[7];
-			BeamSearch bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, bNewTrain, search_width, output_path);		
+			String output_path= args[7].trim();
+			String sense_file=args[8].trim();  //单词语义文件  每一行表示：单词：  sense1|sense2|sense3
+			String lmChar_file = args[9].trim();
+			String lmWord_file = args[10].trim();
+			BeamSearchForDSP bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, bNewTrain, search_width, output_path, sense_file, output_path, lmChar_file,lmWord_file);		
 			try {
 				bs.trainProcess();
 			} catch (Exception e) {
@@ -47,26 +48,48 @@ public class Main {
 			}
 		}else if(args[0].trim().equals("-test")){
 			String test_file= args[1].trim();
-			String model_file= args[2].trim();
-			int number_of_test = Integer.parseInt(args[3].trim());
-			String out_file= args[4].trim();
-			String evaluation_file= args[5].trim();
-			int search_width = Integer.parseInt(args[6].trim());
-			BeamSearch bs= new BeamSearch(test_file,number_of_test, model_file, out_file, evaluation_file, search_width);	
+			String model_file= args[2].trim();			
+			String out_file= args[3].trim();
+			String evaluation_file= args[4].trim();
+			int search_width = Integer.parseInt(args[5].trim());
+			String sense_file=args[6].trim();
+			String out_path = args[7].trim();
+			String lmChar_file = args[8].trim();
+			String lmWord_file = args[9].trim();
+			BeamSearchForDSP bs= new BeamSearch(test_file, model_file, out_file, evaluation_file, search_width,sense_file, out_path, lmChar_file,lmWord_file);	
 			bs.testProcess();
-		}else {//ͬʱѵ������
+		}else if(args[0].trim().equals("-testNoEval")){
+			String test_file= args[1].trim();
+			String model_file= args[2].trim();
+			//int number_of_test = Integer.parseInt(args[3].trim());
+			String out_file= args[3].trim();			
+			int search_width = Integer.parseInt(args[4].trim());
+			String sense_file=args[5].trim();
+			String out_path = args[6].trim();
+			String lmChar_file = args[7].trim();
+			String lmWord_file = args[8].trim();
+			BeamSearchForDSP bs= new BeamSearch(test_file, model_file, out_file, "", search_width,sense_file, out_path, lmChar_file,lmWord_file);
+			bs.testNoEvalProcess();		
+		}
+		else {//同时训练测试
 			String train_file= args[0].trim();
 			String dev_file= args[1].trim();
 			String test_file= args[2].trim();
 			String model_file= args[3].trim();
 			String output_path = args[4].trim();
 			int number_of_iterations= Integer.parseInt(args[5].trim());	
-			
-			int search_width = 16;			
+			String sense_file=args[6].trim();
+			int search_width = Integer.parseInt(args[7].trim());			
+			String log_file = args[8].trim();
+			String lmChar_file = args[9].trim();
+			String lmWord_file = args[10].trim();
 			int number_of_train = -1;
 			int number_of_test = -1;
 			int number_of_dev = -1;
-			boolean bNewTrain= true;
+			//int number_of_train = 100;
+			//int number_of_test = 30;
+			//int number_of_dev = 30;
+			boolean bNewTrain= false;
 			// 
 			//int search_width = Integer.parseInt(args[6].trim());			
 			//int number_of_train = Integer.parseInt(args[7].trim());
@@ -75,9 +98,9 @@ public class Main {
 			
 			//String charpos_file = args[9].trim();
 			//String wordpos_file = args[10].trim();
-			BeamSearch bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, 
+			BeamSearchForDSP bs= new BeamSearch(train_file,number_of_train, model_file, number_of_iterations, 
 					bNewTrain, search_width, test_file, number_of_test,
-					dev_file, number_of_dev, output_path);	
+					dev_file, number_of_dev, output_path,sense_file, log_file, lmChar_file,lmWord_file);	
 			try {
 				bs.trainDevTestProcess();
 			} catch (Exception e) {
